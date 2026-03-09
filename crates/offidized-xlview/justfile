@@ -1,0 +1,125 @@
+# offidized-xlview - XLSX Viewer
+# Rendering: Canvas 2D via web-sys (works in all browsers)
+
+set dotenv-load
+
+# Default recipe - show help
+default:
+    @just --list
+
+# === Development ===
+
+# Build WASM module for development
+build-wasm:
+    wasm-pack build --target web --dev
+    node scripts/patch-pkg.mjs
+
+# Build WASM module for release
+build-release:
+    wasm-pack build --target web --release
+    node scripts/patch-pkg.mjs
+
+# Build TypeScript (compile .ts -> .js via esbuild)
+build-ts:
+    node build.mjs
+
+# Type check TypeScript
+typecheck:
+    npx tsc --noEmit
+
+# Format TypeScript (uses prettier, auto-discovers config)
+ts-fmt:
+    npx prettier --write .
+
+# Format + typecheck + build TypeScript
+ts-all: ts-fmt typecheck build-ts
+
+# Build everything (WASM + TypeScript)
+build: build-wasm build-ts
+
+# Watch and rebuild on changes
+watch:
+    cargo watch -s "wasm-pack build --target web --dev"
+
+# === Quality ===
+
+# Format all Rust code
+fmt:
+    cargo fmt -p offidized-xlview
+
+# Check formatting without changes
+fmt-check:
+    cargo fmt -p offidized-xlview -- --check
+
+# Run clippy (uses workspace lint settings)
+lint:
+    cargo clippy -p offidized-xlview --all-targets --all-features -- -D warnings
+
+# Run all tests (uses workspace test settings)
+test:
+    cargo test -p offidized-xlview --all-features
+
+# Run all quality checks (fmt + lint + test + typecheck)
+check: fmt-check lint test typecheck
+
+# Run everything: format, build, lint, test
+all: fmt build lint test
+
+# === Demo ===
+
+# Serve the demo on port 8080
+serve:
+    @echo "Starting Canvas 2D viewer at http://localhost:8080"
+    python3 -m http.server 8080
+
+# Build and serve demo
+demo: build serve
+
+# Build with editing feature and serve editor demo
+editor-demo:
+    wasm-pack build --target web --dev -- --features editing
+    node scripts/patch-pkg.mjs
+    node build.mjs
+    @echo "Starting editor demo at http://localhost:8080/editor.html"
+    open http://localhost:8080/editor.html
+    python3 -m http.server 8080
+
+# Quick dev build and serve (WASM dev + TS + serve)
+dev: build-wasm build-ts serve
+
+# Browse test fixtures in the viewer (http://localhost:3002)
+gallery: build-wasm
+    bun test/gallery.ts
+
+# === E2E Testing ===
+
+# Run full E2E test suite (headless, self-contained, fast)
+e2e:
+    bun tests/e2e/test_suite.ts
+
+# Build WASM + run E2E suite
+e2e-full: build-wasm e2e
+
+# Run quick smoke test (legacy)
+e2e-quick:
+    bun tests/e2e/quick_test.ts
+
+# Run scroll/header browser tests (legacy)
+e2e-scroll:
+    bun tests/browser/run_scroll_test.ts
+
+# === Maintenance ===
+
+# Clean build artifacts
+clean:
+    rm -rf pkg target tests/e2e/output.png
+
+# Update dependencies
+update:
+    cargo update -p offidized-xlview
+
+# Check WASM bundle size
+size: build-release
+    @echo "WASM bundle size:"
+    @ls -lh pkg/offidized_xlview_bg.wasm
+    @gzip -c pkg/offidized_xlview_bg.wasm | wc -c | awk '{printf "Gzipped: %.1f KB\n", $1/1024}'

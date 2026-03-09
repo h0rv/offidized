@@ -1,0 +1,42 @@
+{
+  "name": "offidized-xlview",
+  "version": "0.1.0",
+  "description": "XLSX viewer — parses and renders Excel files via WebAssembly and Canvas 2D",
+  "type": "module",
+  "keywords": [
+    "xlsx",
+    "excel",
+    "spreadsheet",
+    "wasm",
+    "webassembly",
+    "viewer",
+    "parser",
+    "canvas"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build:wasm": "wasm-pack build --target web --release && node scripts/patch-pkg.mjs",
+    "build:wasm:dev": "wasm-pack build --target web --dev && node scripts/patch-pkg.mjs",
+    "build:wasm:bundler": "wasm-pack build --target bundler --release --out-dir pkg-bundler",
+    "build:wasm:nodejs": "wasm-pack build --target nodejs --release --out-dir pkg-nodejs",
+    "build:ts": "node build.mjs",
+    "build:ts:watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build:wasm",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:update": "playwright test --update-snapshots",
+    "test:e2e": "bun tests/e2e/test_suite.ts",
+    "test:scroll:loop": "bash scripts/scroll_loop.sh",
+    "tune:scroll": "node tests/browser/run_scroll_test.js --tune"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0",
+    "@types/node": "^25.1.0",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.58.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.7.0"
+  }
+}

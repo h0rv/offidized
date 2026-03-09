@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>offidized Gallery</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #0c0c14;
+        --surface: #14141f;
+        --surface2: #1a1a2a;
+        --border: #2a2a3a;
+        --text: #e4e4ef;
+        --text-dim: #7a7a8f;
+        --text-muted: #4a4a5f;
+        --accent: #6366f1;
+        --accent-hover: #818cf8;
+        --green: #34d399;
+        --green-dim: rgba(52, 211, 153, 0.12);
+        --radius: 6px;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* ── Header ───────────────────────────────── */
+      header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .logo {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+      }
+      .logo span {
+        color: var(--accent);
+      }
+      #generate-btn {
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          opacity 0.15s;
+      }
+      #generate-btn:hover {
+        background: var(--accent-hover);
+      }
+      #generate-btn:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      #generate-btn.running {
+        background: transparent;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+      }
+      .header-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      #file-name {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      #render-time {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Layout ───────────────────────────────── */
+      .main {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* ── Sidebar ──────────────────────────────── */
+      #sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+        padding: 12px 0;
+      }
+      #sidebar::-webkit-scrollbar {
+        width: 4px;
+      }
+      #sidebar::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+
+      .group {
+        margin-bottom: 8px;
+      }
+      .group-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 16px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: var(--text-muted);
+      }
+      .group-badge {
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      .badge-pptx {
+        background: rgba(251, 146, 60, 0.15);
+        color: #fb923c;
+      }
+      .badge-docx {
+        background: rgba(96, 165, 250, 0.15);
+        color: #60a5fa;
+      }
+      .badge-xlsx {
+        background: rgba(52, 211, 153, 0.15);
+        color: #34d399;
+      }
+
+      .item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 5px 16px 5px 24px;
+        font-size: 13px;
+        color: var(--text-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition:
+          color 0.1s,
+          background 0.1s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-radius: 0;
+      }
+      .item:hover {
+        color: var(--text);
+        background: var(--surface2);
+      }
+      .item.active {
+        color: #fff;
+        background: var(--surface2);
+      }
+      .item.generated {
+        color: var(--green);
+      }
+      .item.generated::before {
+        content: "";
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--green);
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      .item-parent {
+        padding: 5px 16px 2px 24px;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .item-sub {
+        padding-left: 32px;
+        font-size: 12px;
+      }
+
+      /* ── Viewer ───────────────────────────────── */
+      .viewer-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--bg);
+      }
+      #viewer-container {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      /* When a viewer is loaded, switch to block and let the viewer
+         manage its own internal layout (offidized-xlview uses a flex wrapper
+         with an absolutely-positioned canvas + tab bar). */
+      #viewer-container.has-viewer {
+        display: block;
+        overflow: hidden;
+      }
+      .empty-state {
+        text-align: center;
+        color: var(--text-muted);
+      }
+      .empty-state .icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        opacity: 0.3;
+      }
+      .empty-state p {
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      /* ── Footer ───────────────────────────────── */
+      footer {
+        padding: 5px 20px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      #status {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ── Spinner ──────────────────────────────── */
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        display: none;
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        flex-shrink: 0;
+      }
+      .spinner.visible {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo"><span>offidized</span> Gallery</div>
+      <button id="generate-btn">Generate All</button>
+      <div class="spinner" id="spinner"></div>
+      <div class="header-right">
+        <span id="file-name"></span>
+        <span id="render-time"></span>
+      </div>
+    </header>
+
+    <div class="main">
+      <aside id="sidebar"></aside>
+      <div class="viewer-wrap">
+        <div id="viewer-container">
+          <div class="empty-state">
+            <div class="icon">&#9634;</div>
+            <p>Select an example from the sidebar<br />to preview it here</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <span id="status">Loading...</span>
+    </footer>
+
+    <script type="module" src="./gallery.ts"></script>
+  </body>
+</html>

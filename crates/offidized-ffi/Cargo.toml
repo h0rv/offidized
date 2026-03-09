@@ -1,0 +1,17 @@
+[package]
+name = "offidized-ffi"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "C ABI bindings for offidized OOXML crates"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+offidized-xlsx.workspace = true
+offidized-docx.workspace = true
+offidized-pptx.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

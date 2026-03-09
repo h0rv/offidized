@@ -1,0 +1,6 @@
+node_modules/
+pkg/
+target/
+bench/node_modules/
+tests/snapshots/
+*.wasm

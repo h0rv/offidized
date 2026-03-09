@@ -1,0 +1,82 @@
+[package]
+name = "offidized-xlview"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WASM-powered Excel spreadsheet viewer with Canvas 2D rendering"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+offidized-xlsx.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+wasm-bindgen.workspace = true
+serde-wasm-bindgen.workspace = true
+js-sys.workspace = true
+base64.workspace = true
+thiserror.workspace = true
+console_error_panic_hook.workspace = true
+zip = { workspace = true, optional = true }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    # Core DOM
+    "Window",
+    "Document",
+    "Element",
+    "CssStyleDeclaration",
+    "Node",
+
+    # Canvas 2D rendering
+    "HtmlCanvasElement",
+    "HtmlImageElement",
+    "CanvasRenderingContext2d",
+    "CanvasPattern",
+    "TextMetrics",
+
+    # Events
+    "Event",
+    "MouseEvent",
+    "WheelEvent",
+    "KeyboardEvent",
+    "ResizeObserver",
+    "ResizeObserverEntry",
+    "ResizeObserverSize",
+    "DomRectReadOnly",
+    "DomRect",
+    "HtmlElement",
+    "HtmlDivElement",
+    "EventTarget",
+    "AddEventListenerOptions",
+
+    # Utilities
+    "Performance",
+    "Navigator",
+    "console",
+
+    # Clipboard API
+    "Clipboard",
+
+    # Editing (input overlay)
+    "HtmlInputElement",
+    "FocusEvent",
+]
+
+[features]
+editing = ["zip"]
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true
+criterion.workspace = true
+zip.workspace = true
+
+[[bench]]
+name = "parsing"
+harness = false
+
+[lints]
+workspace = true

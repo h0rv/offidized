@@ -1,0 +1,48 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OFFIDIZED_OPENXML_DATA_ROOT: ${{ github.workspace }}/references/Open-XML-SDK/data
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch Open-XML-SDK schema data (sparse)
+        run: |
+          mkdir -p references
+          if [ ! -d references/Open-XML-SDK/.git ]; then
+            git clone --depth 1 --filter=blob:none --sparse https://github.com/dotnet/Open-XML-SDK.git references/Open-XML-SDK
+          fi
+          git -C references/Open-XML-SDK sparse-checkout set data
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.93.0
+          components: rustfmt, clippy
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: rustfmt
+        run: cargo qfmt
+
+      - name: clippy (strict)
+        run: cargo qclippy
+
+      - name: rust check (workspace)
+        run: cargo qcheck

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offidized.dev/schemas/skill-manifest.schema.json",
+  "title": "Skill Manifest",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "version",
+    "description",
+    "targets"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "description": { "type": "string", "minLength": 1 },
+    "targets": {
+      "type": "object",
+      "required": ["codex", "claude-code"],
+      "properties": {
+        "codex": {
+          "type": "object",
+          "required": ["path", "entry"],
+          "properties": {
+            "path": { "type": "string" },
+            "entry": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "claude-code": {
+          "type": "object",
+          "required": ["path", "entry"],
+          "properties": {
+            "path": { "type": "string" },
+            "entry": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

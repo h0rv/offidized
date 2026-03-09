@@ -1,0 +1,22 @@
+{
+  "name": "offidized-pptview",
+  "version": "0.1.0",
+  "description": "WASM-powered PowerPoint presentation viewer",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run serve.ts",
+    "build:wasm": "wasm-pack build --target web --release",
+    "build:wasm:dev": "wasm-pack build --target web --dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "latest",
+    "eslint": "^10.0.0",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.55.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

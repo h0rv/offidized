@@ -1,0 +1,7 @@
+[alias]
+qfmt = "fmt --all -- --check"
+qclippy = "clippy --workspace --all-targets --all-features -- -D warnings"
+qcheck = "check --workspace --all-targets --all-features"
+
+[env]
+PYO3_USE_ABI3_FORWARD_COMPATIBILITY = "1"

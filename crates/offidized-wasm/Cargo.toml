@@ -1,0 +1,24 @@
+[package]
+name = "offidized-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "wasm-bindgen wrappers for offidized xlsx/docx/pptx APIs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+offidized-docx.workspace = true
+offidized-ir.workspace = true
+offidized-pptx.workspace = true
+offidized-xlsx.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+wasm-bindgen.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

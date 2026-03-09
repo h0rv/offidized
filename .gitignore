@@ -1,0 +1,56 @@
+# Build artifacts
+/target
+Cargo.lock
+
+# Editor temporary files
+*.swp
+*.swo
+.DS_Store
+
+# Reference libraries (cloned separately)
+/references/
+
+# Node
+node_modules/
+
+# Build/test artifacts
+/artifacts/
+/.dotnet_home/
+/tools/dotnet/OpenXmlRoundtripRunner/bin/
+/tools/dotnet/OpenXmlRoundtripRunner/obj/
+
+# Demo/test outputs
+/demo/output
+/demo/target
+/demo/bin/
+/demo/obj/
+/demo/compare_closedxml
+/demo/compare_ours
+/demo/demo
+/demo/closedxml_pivot.xlsx
+/demo/openpyxl_breaker.xlsx
+
+# Test artifacts - Office files generated during tests
+/stress_test/
+/tests/real_world/
+*.xlsx
+*.docx
+*.pptx
+# But allow fixtures
+!tests/fixtures/*.xlsx
+!tests/fixtures/*.docx
+!tests/fixtures/*.pptx
+!crates/*/tests/fixtures/*.xlsx
+!crates/*/tests/fixtures/*.docx
+!crates/*/tests/fixtures/*.pptx
+
+# Temporary lock files
+.~lock.*#
+/.playwright-mcp
+/**/.workspace-*/
+.env
+crates/offidized-mcp/.wrangler/state/v3/r2/miniflare-R2BucketObject
+crates/offidized-mcp/.wrangler/tmp
+crates/offidized-mcp/.dev.vars
+crates/offidized-mcp/dist
+/crates/offidized-xlview/test/.preview

@@ -1,0 +1,36 @@
+[
+  {
+    "name": "kitchen_sink_v2.xlsx",
+    "description": "All features: charts, images, data validation, conditional formatting",
+    "size": "18KB"
+  },
+  {
+    "name": "ms_cf_samples.xlsx",
+    "description": "Microsoft official conditional formatting samples",
+    "size": "635KB"
+  },
+  {
+    "name": "colors_test.xlsx",
+    "size": "5.8KB"
+  },
+  {
+    "name": "kitchen_sink.xlsx",
+    "size": "11.4KB"
+  },
+  {
+    "name": "large_5000x20.xlsx",
+    "size": "1.1MB"
+  },
+  {
+    "name": "minimal.xlsx",
+    "size": "3.3KB"
+  },
+  {
+    "name": "styled.xlsx",
+    "size": "3.6KB"
+  },
+  {
+    "name": "test_comments.xlsx",
+    "size": "6.9KB"
+  }
+]

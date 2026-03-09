@@ -1,0 +1,11 @@
+[package]
+name = "openpyxl-breaker"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "create_demo"
+path = "create_demo.rs"
+
+[dependencies]
+offidized-xlsx = { path = "../crates/offidized-xlsx" }

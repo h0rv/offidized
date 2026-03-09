@@ -1,0 +1,13 @@
+{
+  "registry_version": 1,
+  "skills": [
+    {
+      "id": "offidized-mcp",
+      "name": "Offidized MCP",
+      "version": "0.1.0",
+      "manifest": "catalog/offidized-mcp/manifest.json",
+      "targets": ["codex", "claude-code"],
+      "tags": ["office", "mcp", "xlsx", "docx", "pptx"]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[package]
+name = "offidized-schema"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Generated Rust types for all OOXML schema elements"
+
+[dependencies]
+offidized-opc.workspace = true
+quick-xml.workspace = true
+serde.workspace = true
+
+[build-dependencies]
+offidized-codegen.workspace = true
+anyhow.workspace = true
+
+[features]
+default = ["xlsx", "docx", "pptx"]
+xlsx = []
+docx = []
+pptx = []
+drawingml = []
+all-schemas = ["xlsx", "docx", "pptx", "drawingml"]
+
+[lints]
+workspace = true

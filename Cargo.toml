@@ -1,0 +1,126 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/offidized",
+    "crates/offidized-opc",
+    "crates/offidized-schema",
+    "crates/offidized-codegen",
+    "crates/offidized-formula",
+    "crates/offidized-xlsx",
+    "crates/offidized-docx",
+    "crates/offidized-pptx",
+    "crates/offidized-docview",
+    "crates/offidized-pptview",
+    "crates/offidized-xlview",
+    "crates/offidized-ir",
+    "crates/offidized-cli",
+    "crates/offidized-py",
+    "crates/offidized-wasm",
+    "crates/offidized-ffi",
+    "tools/offidized-differential",
+]
+exclude = ["demo"]
+# offidized-py requires maturin (not plain cargo build) because the PyO3
+# cdylib needs Python-specific linker flags that only maturin provides.
+default-members = [
+    "crates/offidized",
+    "crates/offidized-opc",
+    "crates/offidized-schema",
+    "crates/offidized-codegen",
+    "crates/offidized-formula",
+    "crates/offidized-xlsx",
+    "crates/offidized-docx",
+    "crates/offidized-pptx",
+    "crates/offidized-ir",
+    "crates/offidized-cli",
+    "crates/offidized-wasm",
+    "crates/offidized-ffi",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/h0rv/offidized"
+description = "A Rust-native OOXML library for xlsx, docx, and pptx with full roundtrip fidelity"
+
+[workspace.dependencies]
+# XML
+quick-xml = { version = "0.37", features = ["serialize"] }
+
+# ZIP / OPC
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Spatial indexing (for cell/range lookups, ClosedXML uses RBush)
+rstar = "0.12"
+
+# Hashing
+sha2 = "0.10"
+
+# Byte utilities
+bytes = "1"
+
+# Logging
+tracing = "0.1"
+
+# Testing
+pretty_assertions = "1"
+tempfile = "3"
+proptest = "1"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Bindings
+pyo3 = "0.23"
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+js-sys = "0.3"
+base64 = "0.22"
+console_error_panic_hook = "0.1"
+
+# CRDT / Editing
+yrs = "0.21"
+uuid = { version = "1", features = ["v7", "js"] }
+
+# Internal crates
+offidized-opc = { path = "crates/offidized-opc" }
+offidized-schema = { path = "crates/offidized-schema" }
+offidized-codegen = { path = "crates/offidized-codegen" }
+offidized-formula = { path = "crates/offidized-formula" }
+offidized-xlsx = { path = "crates/offidized-xlsx" }
+offidized-ir = { path = "crates/offidized-ir" }
+offidized-docx = { path = "crates/offidized-docx" }
+offidized-pptx = { path = "crates/offidized-pptx" }
+offidized-docview = { path = "crates/offidized-docview" }
+offidized-pptview = { path = "crates/offidized-pptview" }
+offidized-xlview = { path = "crates/offidized-xlview" }
+offidized-cli = { path = "crates/offidized-cli" }
+offidized-py = { path = "crates/offidized-py" }
+offidized-wasm = { path = "crates/offidized-wasm" }
+offidized-ffi = { path = "crates/offidized-ffi" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
+unused_lifetimes = "deny"
+unused_qualifications = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+expect_used = "deny"
+panic = "deny"
+panic_in_result_fn = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+clone_on_ref_ptr = "deny"
+inefficient_to_string = "deny"
+redundant_clone = "deny"

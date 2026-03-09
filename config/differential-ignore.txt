@@ -1,0 +1,28 @@
+# Known non-roundtrippable fixtures for corpus differential.
+# Paths are relative to /Users/robby/projects/offidized/references.
+
+# Encrypted / password protected packages
+Open-XML-SDK/test/DocumentFormat.OpenXml.Tests.Assets/assets/TestDataStorage/v2FxTestFiles/wordprocessing/protected/document with password.docx
+Open-XML-SDK/test/DocumentFormat.OpenXml.Tests.Assets/assets/TestDataStorage/v2FxTestFiles/wordprocessing/unable to normalized/document with password.docx
+Open-XML-SDK/test/DocumentFormat.OpenXml.Tests.Assets/assets/TestFiles/encrypted_pptx.pptx
+npoi/testcases/test-data/document/bug53475-password-is-pass.docx
+npoi/testcases/test-data/document/bug53475-password-is-solrcell.docx
+npoi/testcases/test-data/poifs/extenxls_pwd123.xlsx
+npoi/testcases/test-data/poifs/protect.xlsx
+npoi/testcases/test-data/poifs/protected_agile.docx
+npoi/testcases/test-data/poifs/protected_sha512.xlsx
+npoi/testcases/test-data/spreadsheet/protected_passtika.xlsx
+
+# Corrupt / malformed payloads
+npoi/testcases/test-data/spreadsheet/54764-2.xlsx
+npoi/testcases/test-data/spreadsheet/58616.xlsx
+npoi/testcases/test-data/spreadsheet/poc-xmlbomb-empty.xlsx
+npoi/testcases/test-data/openxml4j/invalid.xlsx
+npoi/testcases/test-data/spreadsheet/49609.xlsx
+npoi/testcases/test-data/spreadsheet/54764.xlsx
+npoi/testcases/test-data/spreadsheet/invalid.xlsx
+npoi/testcases/test-data/spreadsheet/poc-xmlbomb.xlsx
+npoi/testcases/test-data/document/ExternalEntityInText.docx
+
+# Office lock/temp artifact (not a valid package)
+ClosedXML/ClosedXML.Tests/Resource/TryToLoad/~$LoadPivotTables.xlsx

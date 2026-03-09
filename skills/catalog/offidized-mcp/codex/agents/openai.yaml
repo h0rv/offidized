@@ -1,0 +1,4 @@
+interface:
+  display_name: "Offidized MCP"
+  short_description: "Run deterministic office edits via MCP workflow"
+  default_prompt: "Use $offidized-mcp to edit Office files via discover, lint, preview, and apply."

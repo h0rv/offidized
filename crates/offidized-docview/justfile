@@ -1,0 +1,152 @@
+# offidized-docview — Word document viewer & editor
+
+default:
+    @just --list
+
+# === Rust Quality ===
+
+# Format Rust code
+fmt:
+    cargo fmt -p offidized-docview
+
+# Check Rust formatting without changes
+fmt-check:
+    cargo fmt -p offidized-docview -- --check
+
+# Run clippy (all features)
+lint:
+    cargo clippy -p offidized-docview --all-targets --all-features -- -D warnings
+
+# Run all Rust tests (viewer + editor)
+test:
+    cargo test -p offidized-docview --all-features
+
+# Run only editor tests (unit + integration)
+test-editor:
+    cargo test -p offidized-docview --features editing
+
+# Run only integration tests
+test-integration:
+    cargo test -p offidized-docview --features editing --test editor_tests --test convert_tests
+
+# Run all Rust quality checks (fmt + lint + test)
+check: fmt-check lint test
+
+# === TypeScript ===
+
+# Install JS dependencies
+install:
+    bun install
+
+# Format TypeScript
+ts-fmt:
+    bun prettier --write .
+
+# Lint TypeScript
+ts-lint:
+    bun eslint .
+
+# Type check TypeScript
+typecheck:
+    bun tsc --noEmit
+
+# All TypeScript checks
+ts-all: ts-fmt ts-lint typecheck
+
+# === WASM Build ===
+
+# Build WASM module for development
+build-wasm:
+    wasm-pack build --target web --dev
+
+# Build WASM with editing feature
+build-wasm-edit:
+    wasm-pack build --target web --dev -- --features editing
+
+# Build WASM module for release
+build-release:
+    wasm-pack build --target web --release
+
+# Build WASM with editing feature (release)
+build-release-edit:
+    wasm-pack build --target web --release -- --features editing
+
+# === E2E Tests ===
+
+# Build WASM and run headless E2E tests
+e2e: build-wasm-edit
+    bun test tests/e2e/
+
+# Run E2E tests only (skip WASM build — assumes already built)
+e2e-quick:
+    bun test tests/e2e/
+
+# Run canvas caret harness in headless Chrome with machine-checked assertions
+caret-harness: build-wasm-edit
+    bun tests/browser/run_caret_harness.js
+
+# Run canvas caret harness only (skip WASM build)
+caret-harness-quick:
+    bun tests/browser/run_caret_harness.js
+
+# Run editor canvas caret scenario in headless Chrome
+editor-caret: build-wasm-edit
+    bun tests/browser/run_editor_canvas_caret.js
+
+# Run editor canvas caret scenario only (skip WASM build)
+editor-caret-quick:
+    bun tests/browser/run_editor_canvas_caret.js
+
+# Run editor ops browser harness against the canvas renderer
+editor-ops-canvas-quick:
+    bun tests/browser/run_editor_canvas_ops.js
+
+# Run editor ops browser harness against the HTML renderer
+editor-ops-html-quick:
+    EDITOR_OPS_RENDERER=html bun tests/browser/run_editor_canvas_ops.js
+
+# Run two-window collab sync harness in headless Chrome
+editor-collab: build-wasm-edit
+    bun tests/browser/run_editor_collab_sync.js
+
+# Run two-window collab sync harness only (skip WASM build)
+editor-collab-quick:
+    bun tests/browser/run_editor_collab_sync.js
+
+# === Demo ===
+
+# Serve the viewer demo
+serve:
+    bun run serve.ts
+
+# Run the collaborative editing relay server
+relay:
+    bun run demo/relay-server.ts
+
+# Run both the dev server and relay server
+serve-collab: build-wasm-edit
+    bun run demo/relay-server.ts &
+    bun run serve.ts
+
+# Build WASM and serve (HTML renderer)
+dev: build-wasm-edit
+    @echo "Renderer: HTML"
+    @echo "  Viewer: http://localhost:3033"
+    @echo "  Editor: http://localhost:3033/editor"
+    bun run serve.ts
+
+# Build WASM and serve (CanvasKit renderer)
+dev-canvas: build-wasm-edit
+    @echo "Renderer: CanvasKit"
+    @echo "  Viewer: http://localhost:3033/?renderer=canvas"
+    @echo "  Editor: http://localhost:3033/editor?renderer=canvas"
+    bun run serve.ts
+
+# === Full Pipeline ===
+
+# Run everything: format, lint, test
+all: fmt ts-fmt ts-lint typecheck lint test
+
+# Clean build artifacts
+clean:
+    rm -rf pkg

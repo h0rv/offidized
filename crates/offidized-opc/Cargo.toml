@@ -1,0 +1,20 @@
+[package]
+name = "offidized-opc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Open Packaging Convention (OPC) implementation for OOXML files"
+
+[dependencies]
+quick-xml.workspace = true
+zip.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

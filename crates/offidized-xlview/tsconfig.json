@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "offidized-xlview": ["./pkg/offidized_xlview.d.ts"]
+    }
+  },
+  "include": [
+    "js/**/*.ts",
+    "src/demo/**/*.ts",
+    "bench/**/*.ts",
+    "tests/browser/**/*.ts",
+    "tests/e2e/**/*.ts"
+  ],
+  "exclude": ["node_modules", "bench/node_modules", "**/*.spec.ts"]
+}

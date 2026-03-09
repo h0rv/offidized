@@ -1,0 +1,45 @@
+default:
+    @just --list
+
+# ── Dev ─────────────────────────────────────────────────────────────────────
+
+# Run the agent with hot reload
+dev:
+    bun --hot server.tsx
+
+# Run without hot reload (closer to production)
+start:
+    bun run server.tsx
+
+# ── Setup ───────────────────────────────────────────────────────────────────
+
+# Install dependencies
+install:
+    bun install
+
+# Build the CLI binary this server depends on (runs from workspace root)
+build-cli:
+    cd ../.. && cargo build -p offidized-cli --release
+
+# Build WASM viewer panels (docview + pptview) for file preview
+build-wasm:
+    wasm-pack build --target bundler ../offidized-docview \
+        --out-dir ../offidized-docview/pkg/
+    wasm-pack build --target bundler ../offidized-pptview \
+        --out-dir ../offidized-pptview/pkg/
+
+# Full first-time setup: install JS deps + build CLI
+setup: install build-cli
+
+# ── Quality ──────────────────────────────────────────────────────────────────
+
+fmt:
+    bunx prettier --write .
+
+lint:
+    bunx eslint .
+
+typecheck:
+    bunx tsc --noEmit
+
+all: fmt lint typecheck

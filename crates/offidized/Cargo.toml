@@ -1,0 +1,21 @@
+[package]
+name = "offidized"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Office, oxidized. Rust-native OOXML library for xlsx, docx, and pptx."
+
+[dependencies]
+offidized-opc.workspace = true
+offidized-xlsx = { workspace = true, optional = true }
+offidized-docx = { workspace = true, optional = true }
+offidized-pptx = { workspace = true, optional = true }
+
+[features]
+default = ["xlsx", "docx", "pptx"]
+xlsx = ["dep:offidized-xlsx"]
+docx = ["dep:offidized-docx"]
+pptx = ["dep:offidized-pptx"]
+
+[lints]
+workspace = true

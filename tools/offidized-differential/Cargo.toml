@@ -1,0 +1,16 @@
+[package]
+name = "offidized-differential"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+offidized-docx = { path = "../../crates/offidized-docx" }
+offidized-opc = { path = "../../crates/offidized-opc" }
+offidized-pptx = { path = "../../crates/offidized-pptx" }
+offidized-xlsx = { path = "../../crates/offidized-xlsx" }
+quick-xml = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zip = { version = "2.2", default-features = false, features = ["deflate"] }

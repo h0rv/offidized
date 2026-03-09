@@ -1,0 +1,23 @@
+[package]
+name = "offidized-ir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Bidirectional lossless text IR for Office files"
+
+[dependencies]
+offidized-docx = { workspace = true }
+offidized-pptx = { workspace = true }
+offidized-xlsx = { workspace = true }
+sha2 = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+proptest = { workspace = true }
+zip = { workspace = true }
+
+[lints]
+workspace = true

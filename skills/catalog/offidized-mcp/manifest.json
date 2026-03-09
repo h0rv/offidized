@@ -1,0 +1,16 @@
+{
+  "id": "offidized-mcp",
+  "name": "Offidized MCP",
+  "version": "0.1.0",
+  "description": "Deterministic Office editing workflow for MCP: discover targets, lint edits, preview, and apply.",
+  "targets": {
+    "codex": {
+      "path": "codex",
+      "entry": "SKILL.md"
+    },
+    "claude-code": {
+      "path": "claude-code",
+      "entry": "offidized-mcp.md"
+    }
+  }
+}

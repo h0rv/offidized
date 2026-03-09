@@ -1,0 +1,27 @@
+[package]
+name = "offidized-pptview"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WASM-powered PowerPoint presentation viewer"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+offidized-pptx.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+wasm-bindgen.workspace = true
+serde-wasm-bindgen.workspace = true
+js-sys.workspace = true
+base64.workspace = true
+thiserror.workspace = true
+console_error_panic_hook.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

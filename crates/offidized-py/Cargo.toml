@@ -1,0 +1,27 @@
+[package]
+name = "offidized-py"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "PyO3 bindings for offidized OOXML APIs"
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+test = false
+doctest = false
+
+[features]
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module", "pyo3/abi3-py39"]
+
+[dependencies]
+offidized-docx.workspace = true
+offidized-ir.workspace = true
+offidized-opc.workspace = true
+offidized-pptx.workspace = true
+offidized-xlsx.workspace = true
+pyo3 = { workspace = true, features = ["macros"] }
+
+[lints]
+workspace = true

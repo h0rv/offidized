@@ -1,0 +1,13 @@
+services:
+  offidized-agent:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Pre-built ofx binary (build with: cargo build --release -p offidized-cli)
+      - ../../target/release/ofx:/usr/local/bin/ofx:ro
+      # Pre-built WASM preview assets
+      - ./.preview:/app/.preview:ro
+    restart: unless-stopped

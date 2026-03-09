@@ -1,0 +1,22 @@
+msrv = "1.93.0"
+
+# Keep strict defaults practical for API-heavy crates.
+too-many-arguments-threshold = 8
+too-many-lines-threshold = 120
+type-complexity-threshold = 300
+
+# Domain-specific identifiers used throughout OOXML crates.
+doc-valid-idents = [
+    "OOXML",
+    "OpenXML",
+    "XLSX",
+    "DOCX",
+    "PPTX",
+    "PyO3",
+    "WebAssembly",
+]
+
+# Unit tests may legitimately exercise panic/error branches.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true

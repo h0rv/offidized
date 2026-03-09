@@ -1,0 +1,37 @@
+# offidized-pptview — PowerPoint presentation viewer
+
+default: all
+
+# Build WASM module for development
+build-wasm:
+    wasm-pack build --target web --dev
+
+# Build WASM module for release
+build-release:
+    wasm-pack build --target web --release
+
+# Install dependencies
+install:
+    bun install
+
+# Format code
+fmt:
+    bun prettier --write .
+
+# Lint code
+lint:
+    bun eslint .
+
+# Type check TypeScript
+typecheck:
+    bun tsc --noEmit
+
+# Run all checks
+all: fmt lint typecheck
+
+# Serve the demo with HMR
+serve:
+    bun run serve.ts
+
+# Build WASM and serve
+dev: build-wasm serve
