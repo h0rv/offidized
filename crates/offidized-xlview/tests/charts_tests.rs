@@ -750,6 +750,71 @@ fn test_chart_position_two_cell_anchor() {
     assert_eq!(chart.from_row_off, Some(50000));
     assert_eq!(chart.to_col, Some(10));
     assert_eq!(chart.to_row, Some(20));
+
+    let parsed_chart = &sheet.charts[0];
+    assert_eq!(parsed_chart.to_col, Some(10));
+    assert_eq!(parsed_chart.to_row, Some(20));
+    assert_eq!(parsed_chart.extent_cx, None);
+    assert_eq!(parsed_chart.extent_cy, None);
+}
+
+#[test]
+fn test_chart_position_one_cell_anchor_uses_outer_extent() {
+    let drawing_xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+          xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <xdr:oneCellAnchor>
+    <xdr:from>
+      <xdr:col>0</xdr:col>
+      <xdr:colOff>0</xdr:colOff>
+      <xdr:row>0</xdr:row>
+      <xdr:rowOff>0</xdr:rowOff>
+    </xdr:from>
+    <xdr:ext cx="4572000" cy="2743200"/>
+    <xdr:graphicFrame macro="">
+      <xdr:nvGraphicFramePr>
+        <xdr:cNvPr id="2" name="One Cell Chart"/>
+        <xdr:cNvGraphicFramePr/>
+      </xdr:nvGraphicFramePr>
+      <xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm>
+      <a:graphic>
+        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:chart r:id="rId1"/>
+        </a:graphicData>
+      </a:graphic>
+    </xdr:graphicFrame>
+    <xdr:clientData/>
+  </xdr:oneCellAnchor>
+</xdr:wsDr>"#;
+
+    let chart_xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <c:chart>
+    <c:plotArea>
+      <c:barChart>
+        <c:barDir val="col"/>
+        <c:grouping val="clustered"/>
+        <c:ser><c:idx val="0"/><c:order val="0"/></c:ser>
+      </c:barChart>
+    </c:plotArea>
+  </c:chart>
+</c:chartSpace>"#;
+
+    let xlsx = create_xlsx_with_chart(drawing_xml, chart_xml, standard_chart_drawing_rels_xml());
+    let workbook = common::load_xlsx(&xlsx);
+
+    let sheet = &workbook.sheets[0];
+    assert_eq!(sheet.charts.len(), 1);
+
+    let chart = &sheet.charts[0];
+    assert_eq!(chart.from_col, Some(0));
+    assert_eq!(chart.from_row, Some(0));
+    assert_eq!(chart.to_col, None);
+    assert_eq!(chart.to_row, None);
+    assert_eq!(chart.extent_cx, Some(4_572_000));
+    assert_eq!(chart.extent_cy, Some(2_743_200));
 }
 
 // =============================================================================

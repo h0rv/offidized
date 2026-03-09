@@ -51,6 +51,31 @@ demo:
     mkdir -p demo
     cargo run --release -p offidized-xlsx --example pivot_demo
 
+# Fetch the Open XML SDK schema data required for site builds.
+site-fetch-openxml-data:
+    mkdir -p references
+    if [ ! -d references/Open-XML-SDK/.git ]; then git clone --depth 1 --filter=blob:none --sparse https://github.com/dotnet/Open-XML-SDK.git references/Open-XML-SDK; fi
+    git -C references/Open-XML-SDK sparse-checkout set data
+
+# Install the JS dependency used by the browser demo build.
+site-install-docview-deps:
+    cd crates/offidized-docview && bun install --frozen-lockfile
+
+# Generate the sample Office files used by the demo site.
+site-build-samples:
+    just dev examples
+
+# Build the static browser demo site.
+site-build:
+    just build wasm-viewers
+    just build wasm-xlview-edit
+    just build wasm-core
+    bun run site/build.ts
+
+# Serve the built static browser demo site.
+site-serve: site-build
+    bun run site/serve.ts
+
 # Open the demo in LibreOffice.
 demo-open: demo
     /opt/homebrew/bin/soffice --calc demo/openpyxl_breaker.xlsx

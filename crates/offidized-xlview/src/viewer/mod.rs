@@ -1086,7 +1086,21 @@ impl XlView {
 
     /// Update the DOM tab bar with current sheet names
     fn update_tab_bar(&self) {
-        let Some(tab_bar) = &self.tab_bar else {
+        Self::update_tab_bar_dom(
+            &self.state,
+            self.tab_bar.as_ref(),
+            self.scroll_spacer.as_ref(),
+            self.scroll_container.as_ref(),
+        );
+    }
+
+    fn update_tab_bar_dom(
+        state: &Rc<RefCell<SharedState>>,
+        tab_bar: Option<&HtmlDivElement>,
+        scroll_spacer: Option<&HtmlDivElement>,
+        scroll_container: Option<&HtmlDivElement>,
+    ) {
+        let Some(tab_bar) = tab_bar else {
             return;
         };
 
@@ -1094,7 +1108,7 @@ impl XlView {
         // DOM changes (set_inner_html, append_child) can synchronously fire scroll
         // events whose closure needs borrow_mut().
         let (sheet_names, tab_colors, active_sheet) = {
-            let s = self.state.borrow();
+            let s = state.borrow();
             (s.sheet_names.clone(), s.tab_colors.clone(), s.active_sheet)
         }; // borrow dropped here — safe to mutate DOM
 
@@ -1142,7 +1156,10 @@ impl XlView {
             }
 
             // Add click handler
-            let state_clone = Rc::clone(&self.state);
+            let state_clone = Rc::clone(state);
+            let tab_bar_clone = tab_bar.clone();
+            let scroll_spacer_clone = scroll_spacer.cloned();
+            let scroll_container_clone = scroll_container.cloned();
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
                 let callback = {
                     let mut s = state_clone.borrow_mut();
@@ -1151,6 +1168,17 @@ impl XlView {
                     }
                     s.render_callback.clone()
                 };
+                Self::update_scroll_spacer_dom(
+                    &state_clone,
+                    scroll_spacer_clone.as_ref(),
+                    scroll_container_clone.as_ref(),
+                );
+                Self::update_tab_bar_dom(
+                    &state_clone,
+                    Some(&tab_bar_clone),
+                    scroll_spacer_clone.as_ref(),
+                    scroll_container_clone.as_ref(),
+                );
                 if let Some(callback) = callback {
                     let _ = callback.call0(&JsValue::NULL);
                 }
@@ -1236,7 +1264,19 @@ impl XlView {
 
     /// Update the scroll spacer size to match the current layout
     fn update_scroll_spacer(&self) {
-        let Some(spacer) = &self.scroll_spacer else {
+        Self::update_scroll_spacer_dom(
+            &self.state,
+            self.scroll_spacer.as_ref(),
+            self.scroll_container.as_ref(),
+        );
+    }
+
+    fn update_scroll_spacer_dom(
+        state: &Rc<RefCell<SharedState>>,
+        spacer: Option<&HtmlDivElement>,
+        scroll_container: Option<&HtmlDivElement>,
+    ) {
+        let Some(spacer) = spacer else {
             return;
         };
 
@@ -1244,7 +1284,7 @@ impl XlView {
         // Setting scroll position fires a synchronous scroll event whose closure
         // needs borrow_mut(), so we must not hold any borrow at that point.
         let (scrollable_width, scrollable_height) = {
-            let s = self.state.borrow();
+            let s = state.borrow();
             let Some(layout) = s.layouts.get(s.active_sheet) else {
                 return;
             };
@@ -1277,7 +1317,7 @@ impl XlView {
         let _ = spacer_style.set_property("height", &format!("{}px", scrollable_height));
 
         // Reset container scroll to 0,0 (start of scrollable area)
-        if let Some(container) = &self.scroll_container {
+        if let Some(container) = scroll_container {
             container.set_scroll_left(0);
             container.set_scroll_top(0);
         }
@@ -1358,6 +1398,7 @@ impl XlView {
 
         // Update scroll spacer to match content size
         self.update_scroll_spacer();
+        self.update_tab_bar();
 
         Self::invoke_render_callback(callback);
 
@@ -1727,6 +1768,7 @@ impl XlView {
 
         // Update scroll spacer for new sheet
         self.update_scroll_spacer();
+        self.update_tab_bar();
 
         Self::invoke_render_callback(callback);
     }

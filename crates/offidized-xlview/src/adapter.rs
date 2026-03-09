@@ -417,13 +417,18 @@ fn convert_charts(
                 overlay: l.overlay(),
             });
 
-            // Detect one-cell anchors: to_col/to_row will be 0 while
-            // from_col > 0 or from_row > 0, meaning the drawing has no
-            // <to> element. Pass None so the renderer falls back to
-            // extent-based or default sizing.
-            let is_one_cell = chart.to_col() == 0
+            // Detect one-cell anchors: the reader leaves `to_*` at zero when
+            // there is no `<to>` marker, and the meaningful size comes from the
+            // outer anchor `<ext>`. This also handles charts anchored at A1.
+            let has_positive_extent = matches!(
+                (chart.extent_cx(), chart.extent_cy()),
+                (Some(cx), Some(cy)) if cx > 0 && cy > 0
+            );
+            let is_one_cell = has_positive_extent
+                && chart.to_col() == 0
                 && chart.to_row() == 0
-                && (chart.from_col() > 0 || chart.from_row() > 0);
+                && chart.to_col_off() == 0
+                && chart.to_row_off() == 0;
 
             ViewerChart {
                 chart_type,

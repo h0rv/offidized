@@ -335,10 +335,11 @@ fn convert_table(table: &offidized_docx::table::Table, section_index: usize) -> 
 
     let mut rows = Vec::with_capacity(num_rows);
     for row in 0..num_rows {
-        let row_height_pt = table
-            .row_properties(row)
-            .and_then(|rp| rp.height_twips())
-            .map(twips_to_pt);
+        let row_props = table.row_properties(row);
+        let row_height_pt = row_props.and_then(|rp| rp.height_twips()).map(twips_to_pt);
+        let row_height_rule = row_props
+            .and_then(|rp| rp.height_rule())
+            .map(ToString::to_string);
 
         let mut cells = Vec::with_capacity(num_cols);
         for col in 0..num_cols {
@@ -372,6 +373,7 @@ fn convert_table(table: &offidized_docx::table::Table, section_index: usize) -> 
         rows.push(TableRowModel {
             cells,
             height_pt: row_height_pt,
+            height_rule: row_height_rule,
         });
     }
 

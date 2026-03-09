@@ -22,6 +22,7 @@ node_modules/
 # Demo/test outputs
 /demo/output
 /demo/target
+/site/dist
 /demo/bin/
 /demo/obj/
 /demo/compare_closedxml

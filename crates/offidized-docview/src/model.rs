@@ -226,6 +226,9 @@ pub struct TableRowModel {
     /// Row height in points.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub height_pt: Option<f64>,
+    /// Row height rule (`auto`, `atLeast`, `exact`) when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height_rule: Option<String>,
 }
 
 /// A single table cell.

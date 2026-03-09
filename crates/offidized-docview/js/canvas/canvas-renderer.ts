@@ -52,9 +52,6 @@ const DEFAULT_MARGINS = { top: 72, right: 72, bottom: 72, left: 72 };
 /** Default font size in points when a run has no explicit size. */
 const DEFAULT_FONT_SIZE_PT = 11;
 
-/** Estimated row height for tables when no explicit height is given. */
-const TABLE_DEFAULT_ROW_HEIGHT_PT = 20;
-
 /** Cell padding in points (matching Word's default 5.4pt horizontal). */
 const TABLE_CELL_PADDING_PT = 5.4;
 
@@ -123,6 +120,7 @@ interface LaidOutTable {
   rowStart: number;
   rowEnd: number;
   repeatedHeaderRowCount?: number;
+  rowHeightsPt: number[];
 }
 
 /** Internal page representation during pagination. */
@@ -632,11 +630,14 @@ export class CanvasRenderer implements RendererAdapter {
       items: [],
     }));
 
-    // Build lookup for paragraph objects by body index.
+    // Build lookups for measured objects by body index.
     const paragraphMap = new Map<number, MeasuredParagraphEntry>();
+    const tableMap = new Map<number, MeasuredTableEntry>();
     for (const entry of measured) {
       if ("paragraph" in entry) {
         paragraphMap.set(entry.bodyIndex, entry);
+      } else {
+        tableMap.set(entry.bodyIndex, entry);
       }
     }
 
@@ -675,6 +676,8 @@ export class CanvasRenderer implements RendererAdapter {
           this.paragraphPagesByBodyIndex.set(lp.bodyIndex, pagesForBody);
           pageInfo.items.push({ type: "paragraph", ref: lp });
         } else {
+          const measuredTable = tableMap.get(fragment.bodyIndex);
+          if (!measuredTable) continue;
           const lt: LaidOutTable = {
             pageIndex: page.pageIndex,
             yPt: fragment.yPt,
@@ -685,6 +688,9 @@ export class CanvasRenderer implements RendererAdapter {
             rowStart: fragment.rowStart,
             rowEnd: fragment.rowEnd,
             repeatedHeaderRowCount: fragment.repeatedHeaderRowCount,
+            rowHeightsPt: measuredTable.tableInfo.rows.map(
+              (row) => row.heightPt,
+            ),
           };
           this.laidOutTables.push(lt);
           pageInfo.items.push({ type: "table", ref: lt });
@@ -1083,7 +1089,7 @@ export class CanvasRenderer implements RendererAdapter {
         const tableInfo =
           cached && cached.key === cacheKey
             ? cached.tableInfo
-            : this.measureTable(item);
+            : this.measureTable(item, columnWidth);
         if (!cached || cached.key !== cacheKey) {
           this.tableMeasureCache.set(i, { key: cacheKey, tableInfo });
         }
@@ -1591,9 +1597,12 @@ export class CanvasRenderer implements RendererAdapter {
   }
 
   /**
-   * Compute an approximate table height from its row definitions.
+   * Compute table row heights from measured cell content.
    */
-  private measureTable(t: TableModel): {
+  private measureTable(
+    table: TableModel,
+    columnWidthPt: number,
+  ): {
     rows: Array<{
       heightPt: number;
       isHeader?: boolean;
@@ -1604,6 +1613,7 @@ export class CanvasRenderer implements RendererAdapter {
     }>;
     totalHeightPt: number;
   } {
+    const colWidths = this.measureTableColumnWidthsPt(table, columnWidthPt);
     let total = 0;
     const rows: Array<{
       heightPt: number;
@@ -1613,8 +1623,18 @@ export class CanvasRenderer implements RendererAdapter {
       keepWithNext?: boolean;
       cantSplit?: boolean;
     }> = [];
-    for (const row of t.rows) {
-      const h = row.heightPt ?? TABLE_DEFAULT_ROW_HEIGHT_PT;
+    for (const row of table.rows) {
+      const contentHeightPt = this.measureTableRowContentHeightPt(
+        row,
+        colWidths,
+      );
+      const heightRule = row.heightRule?.toLowerCase();
+      const h =
+        row.heightPt == null
+          ? contentHeightPt
+          : heightRule === "exact"
+            ? row.heightPt
+            : Math.max(row.heightPt, contentHeightPt);
       rows.push({
         heightPt: h,
         isHeader: row.isHeader,
@@ -1626,6 +1646,91 @@ export class CanvasRenderer implements RendererAdapter {
       total += h;
     }
     return { rows, totalHeightPt: total };
+  }
+
+  private measureTableColumnWidthsPt(
+    table: TableModel,
+    availableWidthPt: number,
+  ): number[] {
+    if (table.columnWidthsPt.length > 0) {
+      return table.columnWidthsPt.slice();
+    }
+    const columns = this.tableColumnCount(table);
+    if (columns <= 0) return [];
+    return Array.from({ length: columns }, () => availableWidthPt / columns);
+  }
+
+  private tableColumnCount(
+    table: Pick<TableModel, "rows" | "columnWidthsPt">,
+  ): number {
+    if (table.columnWidthsPt.length > 0) {
+      return table.columnWidthsPt.length;
+    }
+    const firstRow = table.rows[0];
+    if (!firstRow) return 0;
+    let columns = 0;
+    for (const cell of firstRow.cells) {
+      if (cell.isCovered) continue;
+      columns += cell.colSpan ?? 1;
+    }
+    return columns;
+  }
+
+  private measureTableRowContentHeightPt(
+    row: TableRowModel,
+    colWidthsPt: number[],
+  ): number {
+    let maxHeightPt = 0;
+    let colIdx = 0;
+    for (const cell of row.cells) {
+      const span = cell.colSpan ?? 1;
+      if (cell.isCovered) {
+        colIdx += span;
+        continue;
+      }
+
+      let cellWidthPt = 0;
+      for (let i = 0; i < span; i += 1) {
+        cellWidthPt += colWidthsPt[colIdx + i] ?? 0;
+      }
+
+      maxHeightPt = Math.max(
+        maxHeightPt,
+        this.measureTableCellHeightPt(cell.text, cellWidthPt),
+      );
+      colIdx += span;
+    }
+    return maxHeightPt;
+  }
+
+  private measureTableCellHeightPt(text: string, cellWidthPt: number): number {
+    const paragraph = this.buildTableCellParagraph(text);
+    const layoutWidth = Math.max(cellWidthPt - TABLE_CELL_PADDING_PT * 2, 10);
+    paragraph.layout(layoutWidth);
+    const contentHeightPt = Math.max(0, paragraph.getHeight?.() ?? 0);
+    paragraph.delete();
+    return contentHeightPt + TABLE_CELL_PADDING_PT * 2;
+  }
+
+  private buildTableCellParagraph(text: string): any {
+    const ck = this.ck;
+    const paraStyle = new ck.ParagraphStyle({
+      textAlign: ck.TextAlign.Left,
+      textStyle: { color: ck.Color(0, 0, 0, 1) },
+    });
+    const builder = ck.ParagraphBuilder.MakeFromFontCollection(
+      paraStyle,
+      this.fontCollection,
+    );
+    const textStyle = new ck.TextStyle({
+      fontFamilies: [resolveFontFamily()],
+      fontSize: DEFAULT_FONT_SIZE_PT,
+      color: ck.Color(0, 0, 0, 1),
+    });
+    builder.pushStyle(textStyle);
+    builder.addText(text.length > 0 ? text : "\u00A0");
+    builder.pop();
+    return builder.build();
   }
 
   private sectionColumnWidth(section: SectionModel): number {
@@ -1965,13 +2070,19 @@ export class CanvasRenderer implements RendererAdapter {
     textPaint.setColor(ck.Color(0, 0, 0, 1));
     textPaint.setAntiAlias(true);
 
-    const rows: TableRowModel[] = [];
+    const rowIndices: number[] = [];
     if ((lt.repeatedHeaderRowCount ?? 0) > 0) {
-      rows.push(...table.rows.slice(0, lt.repeatedHeaderRowCount));
+      rowIndices.push(
+        ...Array.from({ length: lt.repeatedHeaderRowCount }, (_, idx) => idx),
+      );
     }
-    rows.push(...table.rows.slice(lt.rowStart, lt.rowEnd));
-    for (const row of rows) {
-      const rowH = row.heightPt ?? TABLE_DEFAULT_ROW_HEIGHT_PT;
+    for (let rowIndex = lt.rowStart; rowIndex < lt.rowEnd; rowIndex += 1) {
+      rowIndices.push(rowIndex);
+    }
+    for (const rowIndex of rowIndices) {
+      const row = table.rows[rowIndex];
+      if (!row) continue;
+      const rowH = lt.rowHeightsPt[rowIndex] ?? 0;
 
       let colIdx = 0;
       for (const cell of row.cells) {
@@ -2001,24 +2112,7 @@ export class CanvasRenderer implements RendererAdapter {
 
         // Draw cell text (all in points)
         if (cell.text) {
-          const paraStyle = new ck.ParagraphStyle({
-            textAlign: ck.TextAlign.Left,
-            textStyle: { color: ck.Color(0, 0, 0, 1) },
-          });
-          const builder = ck.ParagraphBuilder.MakeFromFontCollection(
-            paraStyle,
-            this.fontCollection,
-          );
-          const textStyle = new ck.TextStyle({
-            fontFamilies: [resolveFontFamily()],
-            fontSize: DEFAULT_FONT_SIZE_PT,
-            color: ck.Color(0, 0, 0, 1),
-          });
-          builder.pushStyle(textStyle);
-          builder.addText(cell.text);
-          builder.pop();
-
-          const cellPara = builder.build();
+          const cellPara = this.buildTableCellParagraph(cell.text);
           const layoutWidth = Math.max(cellW - TABLE_CELL_PADDING_PT * 2, 10);
           cellPara.layout(layoutWidth);
 
@@ -2148,8 +2242,7 @@ export class CanvasRenderer implements RendererAdapter {
       const colWidths = this.tableColumnWidthsPt(bodyItem, lt);
       let rowY = lt.yPt;
       for (let row = lt.rowStart; row < lt.rowEnd; row += 1) {
-        const rowModel = bodyItem.rows[row];
-        const rowHeight = rowModel?.heightPt ?? TABLE_DEFAULT_ROW_HEIGHT_PT;
+        const rowHeight = lt.rowHeightsPt[row] ?? 0;
         if (contentYPt >= rowY && contentYPt <= rowY + rowHeight) {
           let colX = lt.xPt;
           for (let col = 0; col < colWidths.length; col += 1) {
@@ -2183,13 +2276,13 @@ export class CanvasRenderer implements RendererAdapter {
     }
     let yOffset = 0;
     for (let row = lt.rowStart; row < cell.row; row += 1) {
-      yOffset += table.rows[row]?.heightPt ?? TABLE_DEFAULT_ROW_HEIGHT_PT;
+      yOffset += lt.rowHeightsPt[row] ?? 0;
     }
     return {
       xPt: page.section.margins.left + lt.xPt + xOffset,
       yPt: page.section.margins.top + lt.yPt + yOffset,
       wPt: colWidths[cell.col] ?? 0,
-      hPt: rowModel.heightPt ?? TABLE_DEFAULT_ROW_HEIGHT_PT,
+      hPt: lt.rowHeightsPt[cell.row] ?? 0,
     };
   }
 
@@ -2200,7 +2293,7 @@ export class CanvasRenderer implements RendererAdapter {
     if (table.columnWidthsPt.length > 0) {
       return table.columnWidthsPt.slice();
     }
-    const columns = table.rows[0]?.cells.length ?? 0;
+    const columns = this.tableColumnCount(table);
     if (columns <= 0) return [];
     return Array.from({ length: columns }, () => lt.widthPt / columns);
   }

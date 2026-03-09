@@ -89,6 +89,7 @@ export interface TableModel {
 export interface TableRowModel {
   cells: TableCellModel[];
   heightPt?: number;
+  heightRule?: string;
   isHeader?: boolean;
   repeatHeader?: boolean;
   keepTogether?: boolean;

@@ -63,6 +63,11 @@ impl Workbook {
             .map_err(to_js_error)
     }
 
+    #[wasm_bindgen(js_name = toBytes)]
+    pub fn to_bytes(&self) -> Result<Vec<u8>, JsValue> {
+        self.inner.to_bytes().map_err(to_js_error)
+    }
+
     pub fn save(&self, path: &str) -> Result<(), JsValue> {
         self.inner.save(path).map_err(to_js_error)
     }
@@ -111,6 +116,11 @@ impl Document {
     #[wasm_bindgen(js_name = addHeading)]
     pub fn add_heading(&mut self, text: &str, level: u8) {
         self.inner.add_heading(text, level);
+    }
+
+    #[wasm_bindgen(js_name = toBytes)]
+    pub fn to_bytes(&self) -> Result<Vec<u8>, JsValue> {
+        self.inner.to_bytes().map_err(to_js_error)
     }
 
     pub fn save(&self, path: &str) -> Result<(), JsValue> {

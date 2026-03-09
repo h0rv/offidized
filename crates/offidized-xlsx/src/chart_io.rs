@@ -55,6 +55,12 @@ struct ParsedDrawingChartRef {
 /// child. This function scans for both `twoCellAnchor` and `oneCellAnchor` elements that
 /// contain chart graphic frames, and captures anchor positioning and chart name.
 fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum AnchorKind {
+        OneCell,
+        TwoCell,
+    }
+
     let mut reader = Reader::from_reader(Cursor::new(xml));
     reader.config_mut().trim_text(true);
     let mut buffer = Vec::new();
@@ -62,8 +68,10 @@ fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
 
     // Anchor tracking state
     let mut in_anchor = false;
+    let mut anchor_kind: Option<AnchorKind> = None;
     let mut in_from = false;
     let mut in_to = false;
+    let mut in_xfrm = false;
     let mut in_col = false;
     let mut in_col_off = false;
     let mut in_row = false;
@@ -87,8 +95,24 @@ fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
                 let name_bytes = event.name();
                 let local = local_name(name_bytes.as_ref());
                 match local {
-                    b"twoCellAnchor" | b"oneCellAnchor" => {
+                    b"twoCellAnchor" => {
                         in_anchor = true;
+                        anchor_kind = Some(AnchorKind::TwoCell);
+                        from_col = 0;
+                        from_row = 0;
+                        from_col_off = 0;
+                        from_row_off = 0;
+                        to_col = 0;
+                        to_row = 0;
+                        to_col_off = 0;
+                        to_row_off = 0;
+                        chart_name = None;
+                        extent_cx = None;
+                        extent_cy = None;
+                    }
+                    b"oneCellAnchor" => {
+                        in_anchor = true;
+                        anchor_kind = Some(AnchorKind::OneCell);
                         from_col = 0;
                         from_row = 0;
                         from_col_off = 0;
@@ -106,6 +130,9 @@ fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
                     }
                     b"to" if in_anchor => {
                         in_to = true;
+                    }
+                    b"xfrm" if in_anchor => {
+                        in_xfrm = true;
                     }
                     b"col" if in_from || in_to => {
                         in_col = true;
@@ -187,7 +214,13 @@ fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
                     }
                 }
                 // Parse <ext cx="..." cy="..."/> for one-cell anchor sizing
-                if local == b"ext" && in_anchor && !in_from && !in_to {
+                if local == b"ext"
+                    && in_anchor
+                    && anchor_kind == Some(AnchorKind::OneCell)
+                    && !in_from
+                    && !in_to
+                    && !in_xfrm
+                {
                     for attribute in event.attributes().flatten() {
                         let attr_local = local_name(attribute.key.as_ref());
                         let val_str = String::from_utf8_lossy(attribute.value.as_ref());
@@ -205,14 +238,19 @@ fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
                 match local {
                     b"twoCellAnchor" | b"oneCellAnchor" => {
                         in_anchor = false;
+                        anchor_kind = None;
                         in_from = false;
                         in_to = false;
+                        in_xfrm = false;
                     }
                     b"from" => {
                         in_from = false;
                     }
                     b"to" => {
                         in_to = false;
+                    }
+                    b"xfrm" => {
+                        in_xfrm = false;
                     }
                     b"col" => {
                         in_col = false;
@@ -1610,6 +1648,74 @@ mod tests {
 
         let refs = parse_drawing_chart_refs(drawing_xml).expect("should parse drawing XML");
         assert!(refs.is_empty());
+    }
+
+    #[test]
+    fn parse_drawing_chart_refs_ignores_graphic_frame_ext_for_two_cell_anchors() {
+        let drawing_xml = br#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <xdr:twoCellAnchor>
+    <xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>9</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>14</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+    <xdr:graphicFrame>
+      <xdr:nvGraphicFramePr>
+        <xdr:cNvPr id="2" name="Chart 1"/>
+        <xdr:cNvGraphicFramePr/>
+      </xdr:nvGraphicFramePr>
+      <xdr:xfrm>
+        <a:off x="0" y="0"/>
+        <a:ext cx="0" cy="0"/>
+      </xdr:xfrm>
+      <a:graphic>
+        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId1"/>
+        </a:graphicData>
+      </a:graphic>
+    </xdr:graphicFrame>
+  </xdr:twoCellAnchor>
+</xdr:wsDr>"#;
+
+        let refs = parse_drawing_chart_refs(drawing_xml).expect("should parse drawing XML");
+        assert_eq!(refs.len(), 1);
+        assert_eq!(refs[0].relationship_id, "rId1");
+        assert_eq!(refs[0].extent_cx, None);
+        assert_eq!(refs[0].extent_cy, None);
+    }
+
+    #[test]
+    fn parse_drawing_chart_refs_reads_outer_ext_for_one_cell_anchors() {
+        let drawing_xml = br#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <xdr:oneCellAnchor>
+    <xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+    <xdr:ext cx="4572000" cy="2743200"/>
+    <xdr:graphicFrame>
+      <xdr:nvGraphicFramePr>
+        <xdr:cNvPr id="2" name="Chart 1"/>
+        <xdr:cNvGraphicFramePr/>
+      </xdr:nvGraphicFramePr>
+      <xdr:xfrm>
+        <a:off x="0" y="0"/>
+        <a:ext cx="0" cy="0"/>
+      </xdr:xfrm>
+      <a:graphic>
+        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId1"/>
+        </a:graphicData>
+      </a:graphic>
+    </xdr:graphicFrame>
+  </xdr:oneCellAnchor>
+</xdr:wsDr>"#;
+
+        let refs = parse_drawing_chart_refs(drawing_xml).expect("should parse drawing XML");
+        assert_eq!(refs.len(), 1);
+        assert_eq!(refs[0].relationship_id, "rId1");
+        assert_eq!(refs[0].extent_cx, Some(4_572_000));
+        assert_eq!(refs[0].extent_cy, Some(2_743_200));
     }
 
     #[test]

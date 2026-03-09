@@ -7255,7 +7255,7 @@ mod tests {
     use crate::paragraph::ParagraphAlignment;
     use crate::section::{HeaderFooter, PageOrientation};
     use crate::style::Style;
-    use crate::table::{TableBorder, VerticalAlignment, VerticalMerge};
+    use crate::table::{Table, TableBorder, VerticalAlignment, VerticalMerge};
     use offidized_opc::content_types::ContentTypeValue;
     use offidized_opc::relationship::{RelationshipType, TargetMode};
 

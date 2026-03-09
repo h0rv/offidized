@@ -1,0 +1,86 @@
+name: Demo Site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Site
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OFFIDIZED_OPENXML_DATA_ROOT: ${{ github.workspace }}/references/Open-XML-SDK/data
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # `enablement: true` requires a non-default token with repository administration access.
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.93.0
+          targets: wasm32-unknown-unknown
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install just and wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: |
+            just
+            wasm-pack
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Fetch Open-XML-SDK schema data
+        run: just site-fetch-openxml-data
+
+      - name: Install demo JS dependencies
+        run: just site-install-docview-deps
+
+      - name: Generate demo sample files
+        run: just site-build-samples
+
+      - name: Build static demo
+        run: just site-build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site/dist
+
+  deploy:
+    name: Deploy Site
+    needs: build
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

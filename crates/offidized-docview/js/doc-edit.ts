@@ -57,9 +57,7 @@ let _initPromise: Promise<void> | null = null;
 /** Initialize the WASM module. Safe to call multiple times. */
 export function init(input?: InitInput): Promise<void> {
   if (!_initPromise) {
-    _initPromise = _init(input ?? "/pkg/offidized_docview_bg.wasm").then(
-      () => {},
-    );
+    _initPromise = _init(input).then(() => {});
   }
   return _initPromise!;
 }

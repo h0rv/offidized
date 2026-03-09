@@ -8,6 +8,15 @@ type CanvasKit = unknown;
 let ck: CanvasKit | null = null;
 let loading: Promise<CanvasKit> | null = null;
 
+function resolveCanvasKitFile(file: string): string {
+  const overrideBase = (globalThis as { __OFFIDIZED_CANVASKIT_BASE__?: string })
+    .__OFFIDIZED_CANVASKIT_BASE__;
+  if (overrideBase) {
+    return new URL(file, overrideBase).toString();
+  }
+  return new URL(`./assets/vendor/${file}`, import.meta.url).toString();
+}
+
 /**
  * Get the CanvasKit singleton, lazily loading on first call.
  *
@@ -22,7 +31,7 @@ export async function getCanvasKit(): Promise<CanvasKit> {
     const mod = await import("canvaskit-wasm");
     const init = mod.default;
     ck = await init({
-      locateFile: (file: string) => `/node_modules/canvaskit-wasm/bin/${file}`,
+      locateFile: resolveCanvasKitFile,
     });
     return ck!;
   })();

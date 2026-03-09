@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>offidized</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">offidized</p>
+        <h1>Office, oxidized.</h1>
+        <p class="lede">
+          A Rust library for reading and editing existing Excel, Word, and
+          PowerPoint files. Portable, fast, and headless, with Python
+          bindings, a CLI, browser WASM, and workflows for AI agents.
+        </p>
+        <div class="hero-links">
+          <a class="source-link" href="https://github.com/h0rv/offidized" target="_blank" rel="noreferrer">
+            Source on GitHub
+          </a>
+        </div>
+      </header>
+
+      <main class="demo-shell">
+        <nav class="file-tabs" aria-label="File type">
+          <button class="file-tab active" data-target="xlsx">Excel</button>
+          <button class="file-tab" data-target="docx">Word</button>
+          <button class="file-tab" data-target="pptx">PowerPoint</button>
+        </nav>
+
+        <section class="demo-panel active" data-kind="xlsx">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Excel</p>
+              <h2>Spreadsheet demo</h2>
+              <p class="panel-note">
+                Viewer and light editor for existing spreadsheets. Browser edit
+                mode saves valid XLSX, but live formula recalculation is not in
+                this demo yet.
+              </p>
+            </div>
+            <div class="mode-switch" role="tablist" aria-label="Spreadsheet mode">
+              <button class="mode-chip active" data-mode="view">View</button>
+              <button class="mode-chip" data-mode="edit">Edit</button>
+            </div>
+          </div>
+          <div class="panel-controls">
+            <div class="sample-row">
+              <button class="sample-chip active" data-sample="portfolio">Portfolio</button>
+            </div>
+            <div class="action-row">
+              <button class="new-button" hidden>New</button>
+              <label class="upload-button">
+                <input class="file-input" type="file" accept=".xlsx" />
+                Upload
+              </label>
+              <button class="save-button" hidden>Download</button>
+            </div>
+          </div>
+          <p class="panel-status">Loading sample…</p>
+          <div class="stage-frame">
+            <div class="stage stage-xl"></div>
+          </div>
+        </section>
+
+        <section class="demo-panel" data-kind="docx">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Word</p>
+              <h2>Document demo</h2>
+              <p class="panel-note">
+                Canvas looks more like a paged document. HTML is lighter and
+                easier to embed into app UIs.
+              </p>
+            </div>
+            <div class="panel-switches">
+              <div class="mode-switch renderer-switch" role="tablist" aria-label="Document renderer">
+                <button class="mode-chip active" data-renderer="canvas">Canvas</button>
+                <button class="mode-chip" data-renderer="html">HTML</button>
+              </div>
+              <div class="mode-switch" role="tablist" aria-label="Document mode">
+                <button class="mode-chip active" data-mode="view">View</button>
+                <button class="mode-chip" data-mode="edit">Edit</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-controls">
+            <div class="sample-row">
+              <button class="sample-chip active" data-sample="contract">Contract</button>
+              <button class="sample-chip" data-sample="tables">Tables</button>
+            </div>
+            <div class="action-row">
+              <button class="new-button" hidden>New</button>
+              <label class="upload-button">
+                <input class="file-input" type="file" accept=".docx" />
+                Upload
+              </label>
+              <button class="save-button" hidden>Download</button>
+            </div>
+          </div>
+          <p class="panel-status">Loading sample…</p>
+          <div class="stage-frame stage-frame-doc">
+            <div class="stage stage-doc"></div>
+          </div>
+        </section>
+
+        <section class="demo-panel" data-kind="pptx">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">PowerPoint</p>
+              <h2>Presentation demo</h2>
+            </div>
+            <div class="mode-switch mode-switch-static">
+              <span class="mode-chip active static-chip">View only</span>
+            </div>
+          </div>
+          <div class="panel-controls">
+            <div class="sample-row">
+              <button class="sample-chip active" data-sample="pitch">Pitch deck</button>
+              <button class="sample-chip" data-sample="richtext">Rich text</button>
+            </div>
+            <div class="action-row">
+              <label class="upload-button">
+                <input class="file-input" type="file" accept=".pptx" />
+                Upload
+              </label>
+            </div>
+          </div>
+          <p class="panel-status">Loading sample…</p>
+          <div class="stage-frame stage-frame-ppt">
+            <div class="stage stage-ppt"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

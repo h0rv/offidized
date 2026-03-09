@@ -43,9 +43,17 @@ impl CanvasRenderer {
             .copied()
             .unwrap_or(0.0);
 
-        // Prefer extent-based sizing (from one-cell anchors) when available.
-        // Fall back to two-cell anchor (to_col/to_row) or default size.
-        let (width, height) = if let (Some(cx), Some(cy)) = (chart.extent_cx, chart.extent_cy) {
+        let has_extent = matches!(
+            (chart.extent_cx, chart.extent_cy),
+            (Some(cx), Some(cy)) if cx > 0 && cy > 0
+        );
+        let has_two_cell_anchor = chart.to_col.is_some() || chart.to_row.is_some();
+
+        // Only use extent-based sizing for real one-cell anchors. Two-cell anchors
+        // should size from their `from`/`to` bounds even if the drawing XML also
+        // contains a nested graphic-frame transform extent.
+        let (width, height) = if has_extent && !has_two_cell_anchor {
+            let (cx, cy) = (chart.extent_cx.unwrap_or(0), chart.extent_cy.unwrap_or(0));
             #[allow(clippy::cast_possible_truncation)]
             let w = (cx as f64 * Self::EMU_TO_PX).max(100.0) as f32;
             #[allow(clippy::cast_possible_truncation)]

@@ -564,6 +564,7 @@ fn read_table(map: &MapRef, txn: &impl ReadTxn) -> Result<TableModel, ViewError>
         rows.push(TableRowModel {
             cells,
             height_pt: None,
+            height_rule: None,
         });
     }
 

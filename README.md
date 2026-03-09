@@ -1,6 +1,8 @@
 # offidized
 
-**Office, oxidized.** A Rust-native OOXML library for reading, writing, and manipulating Excel (.xlsx), Word (.docx), and PowerPoint (.pptx) files with full roundtrip fidelity.
+**Office, oxidized.** A Rust-native OOXML library for reading, understanding, and editing Excel (.xlsx), Word (.docx), and PowerPoint (.pptx) files with full roundtrip fidelity.
+
+offidized is designed for real-world files, not just clean-room generation. Open an existing workbook, document, or deck, change the parts you care about, and save it without requiring Microsoft Office, COM automation, or a heavyweight runtime. That makes it useful for backends, CLIs, browser/WASM tools, and AI agents that need to inspect and update documents safely.
 
 ## Goals
 
@@ -48,8 +50,8 @@ OPC layer             (offidized-opc — ZIP, relationships, content types)
 
 **Non-Rust projects** (in `crates/` but not part of the Cargo workspace):
 
-| Project           | Purpose                        |
-| ----------------- | ------------------------------ |
+| Project           | Purpose                              |
+| ----------------- | ------------------------------------ |
 | `offidized-agent` | Experimental Bun/TypeScript demo app |
 
 ## Roundtrip Strategy
