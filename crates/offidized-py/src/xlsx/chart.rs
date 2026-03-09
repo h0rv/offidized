@@ -68,7 +68,11 @@ fn parse_grouping(s: &str) -> PyResult<CoreChartGrouping> {
 // =============================================================================
 
 /// Python wrapper for a chart data reference (formula + optional cached values).
-#[pyclass(module = "offidized._native", name = "XlsxChartDataRef")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxChartDataRef",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxChartDataRef {
     inner: CoreChartDataRef,
@@ -152,7 +156,7 @@ impl XlsxChartDataRef {
 // =============================================================================
 
 /// Python wrapper for a single chart data series.
-#[pyclass(module = "offidized._native", name = "XlsxChartSeries")]
+#[pyclass(module = "offidized._native", name = "XlsxChartSeries", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxChartSeries {
     inner: CoreChartSeries,
@@ -342,7 +346,7 @@ impl XlsxChartSeries {
 // =============================================================================
 
 /// Python wrapper for a chart axis (category, value, date, or series axis).
-#[pyclass(module = "offidized._native", name = "XlsxChartAxis")]
+#[pyclass(module = "offidized._native", name = "XlsxChartAxis", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxChartAxis {
     inner: CoreChartAxis,
@@ -568,7 +572,7 @@ impl XlsxChartAxis {
 // =============================================================================
 
 /// Python wrapper for chart legend settings.
-#[pyclass(module = "offidized._native", name = "XlsxChartLegend")]
+#[pyclass(module = "offidized._native", name = "XlsxChartLegend", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxChartLegend {
     inner: CoreChartLegend,
@@ -625,7 +629,7 @@ impl XlsxChartLegend {
 // =============================================================================
 
 /// Python wrapper for a chart embedded in a worksheet.
-#[pyclass(module = "offidized._native", name = "XlsxChart")]
+#[pyclass(module = "offidized._native", name = "XlsxChart", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxChart {
     inner: CoreChart,

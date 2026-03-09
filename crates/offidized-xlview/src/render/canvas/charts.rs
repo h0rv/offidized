@@ -8,6 +8,11 @@ use super::renderer::{CanvasRenderer, SCROLLBAR_SIZE};
 impl CanvasRenderer {
     /// Chart color palette
     const CHART_COLORS: [&'static str; 5] = ["#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", "#5B9BD5"];
+    const CHART_PADDING: f64 = 10.0;
+    const CHART_AXIS_LEFT_GUTTER: f64 = 36.0;
+    const CHART_AXIS_RIGHT_GUTTER: f64 = 6.0;
+    const CHART_AXIS_BOTTOM_GUTTER: f64 = 24.0;
+    const CHART_MIN_LABEL_SPACING: f64 = 56.0;
 
     /// Render charts embedded in the sheet
     pub(super) fn render_charts(
@@ -108,13 +113,21 @@ impl CanvasRenderer {
         // Reserve space for title and legend
         let title_height = if chart.title.is_some() { 24.0 } else { 8.0 };
         let legend_height = if chart.legend.is_some() { 20.0 } else { 8.0 };
-        let padding = 10.0;
+        let padding = Self::CHART_PADDING;
+        let (axis_left_gutter, axis_right_gutter, axis_bottom_gutter) = match chart.chart_type {
+            ChartType::Pie | ChartType::Doughnut => (0.0, 0.0, 0.0),
+            _ => (
+                Self::CHART_AXIS_LEFT_GUTTER,
+                Self::CHART_AXIS_RIGHT_GUTTER,
+                Self::CHART_AXIS_BOTTOM_GUTTER,
+            ),
+        };
 
         // Calculate plot area
-        let plot_x = x + padding;
+        let plot_x = x + padding + axis_left_gutter;
         let plot_y = y + title_height;
-        let plot_w = w - padding * 2.0;
-        let plot_h = h - title_height - legend_height - padding;
+        let plot_w = (w - padding * 2.0 - axis_left_gutter - axis_right_gutter).max(40.0);
+        let plot_h = (h - title_height - legend_height - padding - axis_bottom_gutter).max(30.0);
 
         // Draw title if present
         if let Some(ref title) = chart.title {
@@ -338,6 +351,31 @@ impl CanvasRenderer {
         self.ctx.stroke();
     }
 
+    fn category_label_stride(num_labels: usize, plot_width: f64) -> usize {
+        if num_labels <= 1 {
+            return 1;
+        }
+
+        let max_labels = ((plot_width / Self::CHART_MIN_LABEL_SPACING).floor() as usize).max(2);
+        num_labels.div_ceil(max_labels).max(1)
+    }
+
+    fn compact_category_label(label: &str) -> String {
+        let bytes = label.as_bytes();
+        if bytes.len() == 10
+            && bytes.get(4) == Some(&b'-')
+            && bytes.get(7) == Some(&b'-')
+            && bytes
+                .iter()
+                .enumerate()
+                .all(|(idx, byte)| idx == 4 || idx == 7 || byte.is_ascii_digit())
+        {
+            return label.get(5..).unwrap_or(label).to_string();
+        }
+
+        label.to_string()
+    }
+
     /// Render a pie chart (or doughnut)
     #[allow(clippy::indexing_slicing)] // Safe: modulo ensures index is within bounds
     fn render_pie_chart(&self, chart: &Chart, x: f64, y: f64, w: f64, h: f64) {
@@ -539,13 +577,32 @@ impl CanvasRenderer {
             .and_then(|s| s.values.as_ref())
             .map(|v| v.num_values.len())
             .unwrap_or(5);
+        let category_count = chart
+            .series
+            .first()
+            .and_then(|s| s.categories.as_ref())
+            .map(|c| c.str_values.len())
+            .unwrap_or(num_points);
+        let label_stride = Self::category_label_stride(category_count.max(num_points), w);
 
         if num_points > 1 {
-            for i in 0..=num_points {
-                let grid_x = x + (w * i as f64 / num_points as f64);
+            let divisor = match chart.chart_type {
+                ChartType::Line | ChartType::Area => (num_points - 1) as f64,
+                _ => num_points as f64,
+            };
+
+            for i in (0..num_points).step_by(label_stride) {
+                let grid_x = x + (w * i as f64 / divisor.max(1.0));
                 self.ctx.begin_path();
                 self.ctx.move_to(grid_x, y);
                 self.ctx.line_to(grid_x, y + h);
+                self.ctx.stroke();
+            }
+
+            if matches!(chart.chart_type, ChartType::Line | ChartType::Area) {
+                self.ctx.begin_path();
+                self.ctx.move_to(x + w, y);
+                self.ctx.line_to(x + w, y + h);
                 self.ctx.stroke();
             }
         }
@@ -608,10 +665,21 @@ impl CanvasRenderer {
         self.ctx.set_text_align("center");
         if let Some(series) = chart.series.first() {
             if let Some(ref categories) = series.categories {
+                let last_idx = categories.str_values.len().saturating_sub(1);
                 for (i, cat) in categories.str_values.iter().enumerate() {
-                    if num_points > 0 {
-                        let label_x = x + (w * (i as f64 + 0.5) / num_points as f64);
-                        let _ = self.ctx.fill_text(cat, label_x, y + h + 12.0);
+                    if num_points > 0 && (i % label_stride == 0 || i == last_idx) {
+                        let label_x = match chart.chart_type {
+                            ChartType::Line | ChartType::Area => {
+                                if num_points > 1 {
+                                    x + (w * i as f64 / (num_points - 1) as f64)
+                                } else {
+                                    x + w / 2.0
+                                }
+                            }
+                            _ => x + (w * (i as f64 + 0.5) / num_points as f64),
+                        };
+                        let label = Self::compact_category_label(cat);
+                        let _ = self.ctx.fill_text(&label, label_x, y + h + 14.0);
                     }
                 }
             }

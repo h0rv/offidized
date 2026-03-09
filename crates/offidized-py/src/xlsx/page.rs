@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 // =============================================================================
 
 /// Page setup settings for worksheet printing.
-#[pyclass(module = "offidized._native", name = "XlsxPageSetup")]
+#[pyclass(module = "offidized._native", name = "XlsxPageSetup", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxPageSetup {
     inner: CorePageSetup,
@@ -173,7 +173,7 @@ impl XlsxPageSetup {
 // =============================================================================
 
 /// Page margins for worksheet printing, measured in inches.
-#[pyclass(module = "offidized._native", name = "XlsxPageMargins")]
+#[pyclass(module = "offidized._native", name = "XlsxPageMargins", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxPageMargins {
     inner: CorePageMargins,
@@ -301,7 +301,11 @@ impl XlsxPageMargins {
 ///
 /// Strings use OOXML formatting codes such as `&L`, `&C`, `&R` for
 /// left/center/right sections, `&P` for page number, and `&D` for date.
-#[pyclass(module = "offidized._native", name = "XlsxPrintHeaderFooter")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxPrintHeaderFooter",
+    from_py_object
+)]
 #[derive(Clone, Default)]
 pub struct XlsxPrintHeaderFooter {
     inner: CorePrintHeaderFooter,
@@ -450,7 +454,7 @@ impl XlsxPrintHeaderFooter {
 // =============================================================================
 
 /// Collection of row and column page breaks for a worksheet.
-#[pyclass(module = "offidized._native", name = "XlsxPageBreaks")]
+#[pyclass(module = "offidized._native", name = "XlsxPageBreaks", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxPageBreaks {
     inner: CorePageBreaks,
@@ -519,7 +523,11 @@ impl XlsxPageBreaks {
 // =============================================================================
 
 /// Sheet view options controlling visual display.
-#[pyclass(module = "offidized._native", name = "XlsxSheetViewOptions")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxSheetViewOptions",
+    from_py_object
+)]
 #[derive(Clone, Default)]
 pub struct XlsxSheetViewOptions {
     inner: CoreSheetViewOptions,

@@ -54,7 +54,11 @@ fn rule_type_to_str(rt: CoreRuleType) -> &'static str {
 /// Currently, only ``"cellIs"`` and ``"expression"`` rule types can be
 /// constructed from Python. Other rule types (``"colorScale"``, ``"dataBar"``,
 /// etc.) are available when reading existing workbooks.
-#[pyclass(module = "offidized._native", name = "XlsxConditionalFormatting")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxConditionalFormatting",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxConditionalFormatting {
     inner: CoreConditionalFormatting,

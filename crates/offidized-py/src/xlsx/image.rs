@@ -19,7 +19,11 @@ use std::sync::{Arc, Mutex};
 // =============================================================================
 
 /// A worksheet image anchored to a cell (value type).
-#[pyclass(module = "offidized._native", name = "XlsxWorksheetImage")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxWorksheetImage",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxWorksheetImage {
     inner: CoreWorksheetImage,

@@ -19,7 +19,7 @@ use offidized_xlsx::Workbook as CoreWorkbook;
 ///
 /// Fields mirror [`offidized_xlsx::LintFinding`] but are flattened for
 /// ergonomic Python access.
-#[pyclass(module = "offidized._native", name = "XlsxLintFinding")]
+#[pyclass(module = "offidized._native", name = "XlsxLintFinding", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxLintFinding {
     /// Severity string: `"error"`, `"warning"`, or `"info"`.

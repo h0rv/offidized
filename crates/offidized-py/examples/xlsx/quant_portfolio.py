@@ -17,6 +17,7 @@ import math
 import os
 import random
 import tempfile
+from datetime import date, timedelta
 
 from offidized import (
     Workbook,
@@ -277,6 +278,11 @@ def col(c):
     return chr(64 + c // 26) + chr(65 + c % 26)
 
 
+def excel_serial_to_iso(serial):
+    """Convert an Excel date serial into an ISO date string."""
+    return (date(1899, 12, 30) + timedelta(days=int(serial))).isoformat()
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 #  SHEET 1 — HOLDINGS
 # ═════════════════════════════════════════════════════════════════════════════
@@ -488,6 +494,8 @@ port_returns = []
 sp500_returns = []
 ndx_returns = []
 rut_returns = []
+cumul_port_values = []
+cumul_sp500_values = []
 
 for d in range(DAYS):
     dates.append(base_date_serial + d)
@@ -501,6 +509,12 @@ for d in range(DAYS):
     sp500_returns.append(sp_r)
     ndx_returns.append(ndx_r)
     rut_returns.append(rut_r)
+    if d == 0:
+        cumul_port_values.append(1 + port_r)
+        cumul_sp500_values.append(1 + sp_r)
+    else:
+        cumul_port_values.append(cumul_port_values[-1] * (1 + port_r))
+        cumul_sp500_values.append(cumul_sp500_values[-1] * (1 + sp_r))
 
 # Title
 ws2.add_merged_range("A1:I1")
@@ -606,15 +620,20 @@ chart.set_anchor(0, summary_row + 6, 9, summary_row + 26)
 
 s1 = XlsxChartSeries(0, 0)
 s1.name = "Portfolio"
-s1.set_categories(
-    XlsxChartDataRef.from_formula(f"'Daily Returns'!$A$4:$A${last_data_row}")
-)
-s1.set_values(XlsxChartDataRef.from_formula(f"'Daily Returns'!$G$4:$G${last_data_row}"))
+date_ref = XlsxChartDataRef.from_formula(f"'Daily Returns'!$A$4:$A${last_data_row}")
+date_ref.str_values = [excel_serial_to_iso(serial) for serial in dates]
+s1.set_categories(date_ref)
+
+portfolio_ref = XlsxChartDataRef.from_formula(f"'Daily Returns'!$G$4:$G${last_data_row}")
+portfolio_ref.num_values = cumul_port_values
+s1.set_values(portfolio_ref)
 chart.add_series(s1)
 
 s2 = XlsxChartSeries(1, 1)
 s2.name = "S&P 500"
-s2.set_values(XlsxChartDataRef.from_formula(f"'Daily Returns'!$H$4:$H${last_data_row}"))
+sp500_ref = XlsxChartDataRef.from_formula(f"'Daily Returns'!$H$4:$H${last_data_row}")
+sp500_ref.num_values = cumul_sp500_values
+s2.set_values(sp500_ref)
 chart.add_series(s2)
 
 ws2.add_chart(chart)
@@ -743,18 +762,28 @@ for i, (sector, data) in enumerate(
     ws3.cell(f"D{r}").set_style_id(S_PCT_ALT if alt else S_PCT)
 
 sector_end = 18 + len(sector_data)
+sector_labels = [
+    sector
+    for sector, _data in sorted(
+        sector_data.items(), key=lambda kv: -kv[1]["exposure"]
+    )
+]
+sector_weight_values = [
+    round(sector_data[sector]["exposure"] / total_mkt_val, 4) for sector in sector_labels
+]
 
 # Sector pie chart
 sector_chart = XlsxChart("pie")
 sector_chart.title = "Sector Allocation"
 sector_chart.set_anchor(5, 15, 12, 32)
 sec_series = XlsxChartSeries(0, 0)
-sec_series.set_categories(
-    XlsxChartDataRef.from_formula(f"'Risk Analytics'!$A$18:$A${sector_end - 1}")
-)
-sec_series.set_values(
-    XlsxChartDataRef.from_formula(f"'Risk Analytics'!$D$18:$D${sector_end - 1}")
-)
+sector_cat_ref = XlsxChartDataRef.from_formula(f"'Risk Analytics'!$A$18:$A${sector_end - 1}")
+sector_cat_ref.str_values = sector_labels
+sec_series.set_categories(sector_cat_ref)
+
+sector_val_ref = XlsxChartDataRef.from_formula(f"'Risk Analytics'!$D$18:$D${sector_end - 1}")
+sector_val_ref.num_values = sector_weight_values
+sec_series.set_values(sector_val_ref)
 sector_chart.add_series(sec_series)
 ws3.add_chart(sector_chart)
 
@@ -988,11 +1017,13 @@ for i, h in enumerate(attr_hdrs):
 
 # Build monthly sector attribution data + sparkline source data
 sector_order = sorted(sector_data.keys(), key=lambda s: -sector_data[s]["exposure"])
+dashboard_sector_weights = []
 for i, sector in enumerate(sector_order):
     r = 12 + i
     alt = i % 2 == 1
     data = sector_data[sector]
     weight = data["exposure"] / total_mkt_val
+    dashboard_sector_weights.append(round(weight, 4))
     # Simulated sector return
     sec_return = random.gauss(0.02, 0.04)
     contribution = weight * sec_return
@@ -1096,10 +1127,13 @@ bar_chart = XlsxChart("bar")
 bar_chart.title = "Sector Weight Distribution"
 bar_chart.set_anchor(6, 9, 12, 24)
 bar_s = XlsxChartSeries(0, 0)
-bar_s.set_categories(
-    XlsxChartDataRef.from_formula(f"Dashboard!$A$12:$A${attr_end - 1}")
-)
-bar_s.set_values(XlsxChartDataRef.from_formula(f"Dashboard!$B$12:$B${attr_end - 1}"))
+dashboard_cat_ref = XlsxChartDataRef.from_formula(f"Dashboard!$A$12:$A${attr_end - 1}")
+dashboard_cat_ref.str_values = sector_order
+bar_s.set_categories(dashboard_cat_ref)
+
+dashboard_val_ref = XlsxChartDataRef.from_formula(f"Dashboard!$B$12:$B${attr_end - 1}")
+dashboard_val_ref.num_values = dashboard_sector_weights
+bar_s.set_values(dashboard_val_ref)
 bar_chart.add_series(bar_s)
 ws5.add_chart(bar_chart)
 

@@ -152,7 +152,7 @@ fn str_to_subtotal(s: &str) -> PyResult<CorePivotSubtotalFunction> {
 ///
 /// Represents a single dimension field placed on the row, column, or filter
 /// axis of a pivot table. Holds the source column name and display options.
-#[pyclass(module = "offidized._native", name = "XlsxPivotField")]
+#[pyclass(module = "offidized._native", name = "XlsxPivotField", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxPivotField {
     inner: CorePivotField,
@@ -256,7 +256,11 @@ impl XlsxPivotField {
 ///
 /// Data fields are placed in the values area of a pivot table and summarize
 /// the source data using a chosen aggregation function such as SUM or AVERAGE.
-#[pyclass(module = "offidized._native", name = "XlsxPivotDataField")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxPivotDataField",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxPivotDataField {
     inner: CorePivotDataField,
@@ -363,7 +367,7 @@ impl XlsxPivotDataField {
 ///
 /// Construct via :py:meth:`XlsxPivotTable.__init__` or retrieve existing
 /// tables through :py:meth:`Worksheet.pivot_tables`.
-#[pyclass(module = "offidized._native", name = "XlsxPivotTable")]
+#[pyclass(module = "offidized._native", name = "XlsxPivotTable", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxPivotTable {
     inner: CorePivotTable,

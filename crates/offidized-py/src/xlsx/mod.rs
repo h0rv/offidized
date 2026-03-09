@@ -38,7 +38,7 @@ pub(super) fn lock_wb(inner: &Arc<Mutex<CoreWorkbook>>) -> PyResult<MutexGuard<'
         .map_err(|e| value_error(format!("Failed to lock workbook: {e}")))
 }
 
-fn cell_value_to_py(py: Python<'_>, value: Option<&CellValue>) -> PyResult<PyObject> {
+fn cell_value_to_py(py: Python<'_>, value: Option<&CellValue>) -> PyResult<Py<PyAny>> {
     match value {
         None | Some(CellValue::Blank) => Ok(py.None()),
         Some(CellValue::String(s)) => Ok(s.into_pyobject(py)?.into_any().unbind()),
@@ -282,7 +282,7 @@ impl Worksheet {
     }
 
     /// Get the cell value as a Python object (str/int/float/bool/None).
-    pub fn cell_value(&self, reference: &str, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn cell_value(&self, reference: &str, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let wb = lock_wb(&self.workbook)?;
         let ws = wb
             .sheet(&self.name_key)
@@ -760,7 +760,7 @@ pub struct XlsxCell {
 #[pymethods]
 impl XlsxCell {
     /// Get the cell value as a Python object (str/int/float/bool/None).
-    pub fn value(&self, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn value(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let wb = lock_wb(&self.workbook)?;
         let ws = wb
             .sheet(&self.sheet_name)
@@ -888,7 +888,7 @@ impl XlsxCell {
 // =============================================================================
 
 /// Python wrapper for a rich text run within a cell.
-#[pyclass(module = "offidized._native", name = "XlsxRichTextRun")]
+#[pyclass(module = "offidized._native", name = "XlsxRichTextRun", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxRichTextRun {
     inner: RichTextRun,
@@ -1004,7 +1004,7 @@ impl XlsxRichTextRun {
 // =============================================================================
 
 /// Python wrapper for a cell style (value type, not a reference).
-#[pyclass(module = "offidized._native", name = "XlsxStyle")]
+#[pyclass(module = "offidized._native", name = "XlsxStyle", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxStyle {
     number_format: Option<String>,
@@ -1100,7 +1100,7 @@ impl XlsxStyle {
 // =============================================================================
 
 /// Python wrapper for font styling.
-#[pyclass(module = "offidized._native", name = "XlsxFont")]
+#[pyclass(module = "offidized._native", name = "XlsxFont", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxFont {
     name: Option<String>,
@@ -1238,7 +1238,7 @@ impl XlsxFont {
 // =============================================================================
 
 /// Python wrapper for fill styling.
-#[pyclass(module = "offidized._native", name = "XlsxFill")]
+#[pyclass(module = "offidized._native", name = "XlsxFill", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxFill {
     pattern: Option<String>,
@@ -1312,7 +1312,7 @@ impl XlsxFill {
 // =============================================================================
 
 /// Python wrapper for border styling.
-#[pyclass(module = "offidized._native", name = "XlsxBorder")]
+#[pyclass(module = "offidized._native", name = "XlsxBorder", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxBorder {
     left_style: Option<String>,
@@ -1466,7 +1466,7 @@ impl XlsxBorder {
 // =============================================================================
 
 /// Python wrapper for cell alignment.
-#[pyclass(module = "offidized._native", name = "XlsxAlignment")]
+#[pyclass(module = "offidized._native", name = "XlsxAlignment", from_py_object)]
 #[derive(Clone, Default)]
 pub struct XlsxAlignment {
     horizontal: Option<String>,

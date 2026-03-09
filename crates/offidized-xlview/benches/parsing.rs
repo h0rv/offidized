@@ -11,8 +11,9 @@
     clippy::cast_possible_truncation
 )]
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::fs;
+use std::hint::black_box;
 
 /// Benchmark parsing + conversion of the minimal test file.
 fn bench_minimal(c: &mut Criterion) {

@@ -8,7 +8,7 @@
 //!   have a cell value changed, and saved — with all unknown features intact.
 //! - We never need to implement 100% of the spec to be safe for production use.
 
-use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
+use quick_xml::events::{BytesEnd, BytesRef, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 use std::io::{BufRead, Write};
 
@@ -86,10 +86,13 @@ impl RawXmlNode {
                     });
                 }
                 Event::Text(ref e) => {
-                    let text = e.unescape()?.into_owned();
+                    let text = decode_text_event(e)?;
                     if !text.trim().is_empty() {
                         children.push(RawXmlNode::Text(text));
                     }
+                }
+                Event::GeneralRef(ref e) => {
+                    children.push(RawXmlNode::RawBytes(raw_general_ref(e)?));
                 }
                 Event::CData(ref e) => {
                     let text = String::from_utf8_lossy(e.as_ref()).into_owned();
@@ -165,4 +168,16 @@ impl RawXmlNode {
         }
         Ok(())
     }
+}
+
+fn decode_text_event(event: &BytesText<'_>) -> Result<String, quick_xml::Error> {
+    event
+        .xml_content()
+        .map(|text| text.into_owned())
+        .map_err(Into::into)
+}
+
+fn raw_general_ref(event: &BytesRef<'_>) -> Result<Vec<u8>, quick_xml::Error> {
+    let reference = event.decode()?;
+    Ok(format!("&{};", reference).into_bytes())
 }

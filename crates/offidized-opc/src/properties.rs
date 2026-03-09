@@ -3,7 +3,7 @@
 //! Maps to `IPackageProperties` in the Open XML SDK. Provides typed access
 //! to `docProps/core.xml` and `docProps/app.xml` metadata.
 
-use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
+use quick_xml::events::{BytesDecl, BytesEnd, BytesRef, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 use std::io::{BufRead, Write};
 
@@ -76,6 +76,7 @@ impl CoreProperties {
         let mut props = CoreProperties::new();
         let mut buf = Vec::new();
         let mut current_element: Option<String> = None;
+        let mut current_text = String::new();
 
         loop {
             match xml.read_event_into(&mut buf) {
@@ -83,34 +84,26 @@ impl CoreProperties {
                     let name_bytes = e.name();
                     let local = local_name(name_bytes.as_ref());
                     current_element = Some(String::from_utf8_lossy(local).into_owned());
+                    current_text.clear();
                 }
                 Ok(Event::Text(ref e)) => {
-                    if let Some(ref elem) = current_element {
-                        let text = e.unescape()?.into_owned();
-                        if !text.is_empty() {
-                            match elem.as_str() {
-                                "title" => props.title = Some(text),
-                                "subject" => props.subject = Some(text),
-                                "creator" => props.creator = Some(text),
-                                "keywords" => props.keywords = Some(text),
-                                "description" => props.description = Some(text),
-                                "lastModifiedBy" => props.last_modified_by = Some(text),
-                                "revision" => props.revision = Some(text),
-                                "created" => props.created = Some(text),
-                                "modified" => props.modified = Some(text),
-                                "lastPrinted" => props.last_printed = Some(text),
-                                "category" => props.category = Some(text),
-                                "contentType" => props.content_type = Some(text),
-                                "contentStatus" => props.content_status = Some(text),
-                                "identifier" => props.identifier = Some(text),
-                                "language" => props.language = Some(text),
-                                "version" => props.version = Some(text),
-                                _ => {}
-                            }
-                        }
+                    if current_element.is_some() {
+                        current_text.push_str(&decode_text_event(e)?);
+                    }
+                }
+                Ok(Event::GeneralRef(ref e)) => {
+                    if current_element.is_some() {
+                        current_text.push_str(&decode_general_ref(e)?);
                     }
                 }
                 Ok(Event::End(_)) => {
+                    if let Some(elem) = current_element.take() {
+                        if !current_text.is_empty() {
+                            set_core_property(&mut props, &elem, std::mem::take(&mut current_text));
+                        } else {
+                            current_text.clear();
+                        }
+                    }
                     current_element = None;
                 }
                 Ok(Event::Eof) => break,
@@ -341,6 +334,7 @@ impl ExtendedProperties {
         let mut props = ExtendedProperties::new();
         let mut buf = Vec::new();
         let mut current_element: Option<String> = None;
+        let mut current_text = String::new();
 
         loop {
             match xml.read_event_into(&mut buf) {
@@ -348,34 +342,30 @@ impl ExtendedProperties {
                     let name_bytes = e.name();
                     let local = local_name(name_bytes.as_ref());
                     current_element = Some(String::from_utf8_lossy(local).into_owned());
+                    current_text.clear();
                 }
                 Ok(Event::Text(ref e)) => {
-                    if let Some(ref elem) = current_element {
-                        let text = e.unescape()?.into_owned();
-                        if !text.is_empty() {
-                            match elem.as_str() {
-                                "Application" => props.application = Some(text),
-                                "AppVersion" => props.app_version = Some(text),
-                                "Template" => props.template = Some(text),
-                                "Manager" => props.manager = Some(text),
-                                "Company" => props.company = Some(text),
-                                "TotalTime" => props.total_time = Some(text),
-                                "Pages" => props.pages = Some(text),
-                                "Words" => props.words = Some(text),
-                                "Characters" => props.characters = Some(text),
-                                "CharactersWithSpaces" => props.characters_with_spaces = Some(text),
-                                "Lines" => props.lines = Some(text),
-                                "Paragraphs" => props.paragraphs = Some(text),
-                                "Slides" => props.slides = Some(text),
-                                "Notes" => props.notes = Some(text),
-                                "HiddenSlides" => props.hidden_slides = Some(text),
-                                "DocSecurity" => props.doc_security = Some(text),
-                                _ => {}
-                            }
-                        }
+                    if current_element.is_some() {
+                        current_text.push_str(&decode_text_event(e)?);
+                    }
+                }
+                Ok(Event::GeneralRef(ref e)) => {
+                    if current_element.is_some() {
+                        current_text.push_str(&decode_general_ref(e)?);
                     }
                 }
                 Ok(Event::End(_)) => {
+                    if let Some(elem) = current_element.take() {
+                        if !current_text.is_empty() {
+                            set_extended_property(
+                                &mut props,
+                                &elem,
+                                std::mem::take(&mut current_text),
+                            );
+                        } else {
+                            current_text.clear();
+                        }
+                    }
                     current_element = None;
                 }
                 Ok(Event::Eof) => break,
@@ -815,7 +805,10 @@ fn read_text_content<R: BufRead>(xml: &mut Reader<R>, end_name: &[u8]) -> Result
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Text(ref e)) => {
-                text = e.unescape()?.into_owned();
+                text.push_str(&decode_text_event(e)?);
+            }
+            Ok(Event::GeneralRef(ref e)) => {
+                text.push_str(&decode_general_ref(e)?);
             }
             Ok(Event::End(ref e)) if e.name().as_ref() == end_name => {
                 break;
@@ -834,6 +827,70 @@ fn read_text_content<R: BufRead>(xml: &mut Reader<R>, end_name: &[u8]) -> Result
 
 fn local_name(name: &[u8]) -> &[u8] {
     name.rsplit(|byte| *byte == b':').next().unwrap_or(name)
+}
+
+fn decode_text_event(event: &BytesText<'_>) -> Result<String> {
+    event
+        .xml_content()
+        .map(|text| text.into_owned())
+        .map_err(quick_xml::Error::from)
+        .map_err(Into::into)
+}
+
+fn decode_general_ref(event: &BytesRef<'_>) -> Result<String> {
+    let reference = event
+        .decode()
+        .map_err(quick_xml::Error::from)
+        .map_err(crate::error::OpcError::from)?;
+    let escaped = format!("&{};", reference);
+    quick_xml::escape::unescape(&escaped)
+        .map(|text| text.into_owned())
+        .map_err(quick_xml::Error::from)
+        .map_err(Into::into)
+}
+
+fn set_core_property(props: &mut CoreProperties, elem: &str, text: String) {
+    match elem {
+        "title" => props.title = Some(text),
+        "subject" => props.subject = Some(text),
+        "creator" => props.creator = Some(text),
+        "keywords" => props.keywords = Some(text),
+        "description" => props.description = Some(text),
+        "lastModifiedBy" => props.last_modified_by = Some(text),
+        "revision" => props.revision = Some(text),
+        "created" => props.created = Some(text),
+        "modified" => props.modified = Some(text),
+        "lastPrinted" => props.last_printed = Some(text),
+        "category" => props.category = Some(text),
+        "contentType" => props.content_type = Some(text),
+        "contentStatus" => props.content_status = Some(text),
+        "identifier" => props.identifier = Some(text),
+        "language" => props.language = Some(text),
+        "version" => props.version = Some(text),
+        _ => {}
+    }
+}
+
+fn set_extended_property(props: &mut ExtendedProperties, elem: &str, text: String) {
+    match elem {
+        "Application" => props.application = Some(text),
+        "AppVersion" => props.app_version = Some(text),
+        "Template" => props.template = Some(text),
+        "Manager" => props.manager = Some(text),
+        "Company" => props.company = Some(text),
+        "TotalTime" => props.total_time = Some(text),
+        "Pages" => props.pages = Some(text),
+        "Words" => props.words = Some(text),
+        "Characters" => props.characters = Some(text),
+        "CharactersWithSpaces" => props.characters_with_spaces = Some(text),
+        "Lines" => props.lines = Some(text),
+        "Paragraphs" => props.paragraphs = Some(text),
+        "Slides" => props.slides = Some(text),
+        "Notes" => props.notes = Some(text),
+        "HiddenSlides" => props.hidden_slides = Some(text),
+        "DocSecurity" => props.doc_security = Some(text),
+        _ => {}
+    }
 }
 
 fn write_element<W: Write>(xml: &mut Writer<W>, name: &str, value: Option<&str>) -> Result<()> {

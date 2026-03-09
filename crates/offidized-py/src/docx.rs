@@ -485,7 +485,7 @@ impl Document {
 // =============================================================================
 
 /// Python wrapper for a paragraph within a Document.
-#[pyclass(module = "offidized._native", name = "DocxParagraph")]
+#[pyclass(module = "offidized._native", name = "DocxParagraph", from_py_object)]
 #[derive(Clone)]
 pub struct DocxParagraph {
     document: Arc<Mutex<CoreDocument>>,
@@ -1068,7 +1068,7 @@ impl DocxParagraph {
 // =============================================================================
 
 /// Python wrapper for a text run within a paragraph.
-#[pyclass(module = "offidized._native", name = "DocxRun")]
+#[pyclass(module = "offidized._native", name = "DocxRun", from_py_object)]
 #[derive(Clone)]
 pub struct DocxRun {
     document: Arc<Mutex<CoreDocument>>,
@@ -1351,7 +1351,7 @@ impl DocxRun {
 // =============================================================================
 
 /// Python wrapper for a table within a Document.
-#[pyclass(module = "offidized._native", name = "DocxTable")]
+#[pyclass(module = "offidized._native", name = "DocxTable", from_py_object)]
 #[derive(Clone)]
 pub struct DocxTable {
     document: Arc<Mutex<CoreDocument>>,
@@ -1637,7 +1637,7 @@ impl DocxTable {
 // =============================================================================
 
 /// Python wrapper for a single table cell.
-#[pyclass(module = "offidized._native", name = "DocxTableCell")]
+#[pyclass(module = "offidized._native", name = "DocxTableCell", from_py_object)]
 #[derive(Clone)]
 pub struct DocxTableCell {
     document: Arc<Mutex<CoreDocument>>,
@@ -1806,7 +1806,7 @@ impl DocxTableCell {
 // =============================================================================
 
 /// Python wrapper for the document section (page layout).
-#[pyclass(module = "offidized._native", name = "DocxSection")]
+#[pyclass(module = "offidized._native", name = "DocxSection", from_py_object)]
 #[derive(Clone)]
 pub struct DocxSection {
     document: Arc<Mutex<CoreDocument>>,
@@ -2118,7 +2118,11 @@ impl DocxSection {
 // =============================================================================
 
 /// Python wrapper for document properties (metadata).
-#[pyclass(module = "offidized._native", name = "DocxDocumentProperties")]
+#[pyclass(
+    module = "offidized._native",
+    name = "DocxDocumentProperties",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct DocxDocumentProperties {
     document: Arc<Mutex<CoreDocument>>,

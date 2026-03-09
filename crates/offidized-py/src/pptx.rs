@@ -326,7 +326,11 @@ impl Presentation {
 }
 
 /// Python wrapper for presentation properties (metadata).
-#[pyclass(module = "offidized._native", name = "PresentationProperties")]
+#[pyclass(
+    module = "offidized._native",
+    name = "PresentationProperties",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct PresentationProperties {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -484,7 +488,7 @@ impl PresentationProperties {
 // =============================================================================
 
 /// Python wrapper for `offidized_pptx::Slide`.
-#[pyclass(module = "offidized._native", name = "Slide")]
+#[pyclass(module = "offidized._native", name = "Slide", from_py_object)]
 #[derive(Clone)]
 pub struct Slide {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -850,7 +854,7 @@ impl Slide {
 // =============================================================================
 
 /// Python wrapper for `offidized_pptx::Table`.
-#[pyclass(module = "offidized._native", name = "Table")]
+#[pyclass(module = "offidized._native", name = "Table", from_py_object)]
 #[derive(Clone)]
 pub struct Table {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -1169,7 +1173,7 @@ impl Table {
 // =============================================================================
 
 /// Python wrapper for `offidized_pptx::Chart`.
-#[pyclass(module = "offidized._native", name = "Chart")]
+#[pyclass(module = "offidized._native", name = "Chart", from_py_object)]
 #[derive(Clone)]
 pub struct Chart {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -1380,7 +1384,7 @@ impl Chart {
 // =============================================================================
 
 /// Python wrapper for `offidized_pptx::Image`.
-#[pyclass(module = "offidized._native", name = "Image")]
+#[pyclass(module = "offidized._native", name = "Image", from_py_object)]
 #[derive(Clone)]
 pub struct Image {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -1499,7 +1503,7 @@ impl Image {
 // =============================================================================
 
 /// Python wrapper for a shape on a slide, providing access to paragraphs and text.
-#[pyclass(module = "offidized._native", name = "Shape")]
+#[pyclass(module = "offidized._native", name = "Shape", from_py_object)]
 #[derive(Clone)]
 pub struct PyShape {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -2386,7 +2390,7 @@ impl PyShape {
 }
 
 /// Python wrapper for `offidized_pptx::ShapeParagraph`.
-#[pyclass(module = "offidized._native", name = "ShapeParagraph")]
+#[pyclass(module = "offidized._native", name = "ShapeParagraph", from_py_object)]
 #[derive(Clone)]
 pub struct ShapeParagraph {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -2763,7 +2767,7 @@ impl ShapeParagraph {
 }
 
 /// Python wrapper for `offidized_pptx::TextRun` with formatting properties.
-#[pyclass(module = "offidized._native", name = "TextRun")]
+#[pyclass(module = "offidized._native", name = "TextRun", from_py_object)]
 #[derive(Clone)]
 pub struct TextRun {
     presentation: Arc<Mutex<CorePresentation>>,
@@ -3145,7 +3149,11 @@ impl TextRun {
 // =============================================================================
 
 /// Python wrapper for `offidized_pptx::SlideShowSettings`.
-#[pyclass(module = "offidized._native", name = "SlideShowSettings")]
+#[pyclass(
+    module = "offidized._native",
+    name = "SlideShowSettings",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct PySlideShowSettings {
     inner: CoreSlideShowSettings,
@@ -3163,7 +3171,7 @@ impl PySlideShowSettings {
 }
 
 /// Python wrapper for `offidized_pptx::CustomShow`.
-#[pyclass(module = "offidized._native", name = "CustomShow")]
+#[pyclass(module = "offidized._native", name = "CustomShow", from_py_object)]
 #[derive(Clone)]
 pub struct PyCustomShow {
     inner: CoreCustomShow,
@@ -3199,7 +3207,7 @@ impl PyCustomShow {
 }
 
 /// Python wrapper for `offidized_pptx::SlideTransition`.
-#[pyclass(module = "offidized._native", name = "SlideTransition")]
+#[pyclass(module = "offidized._native", name = "SlideTransition", from_py_object)]
 #[derive(Clone)]
 pub struct PySlideTransition {
     inner: CoreSlideTransition,

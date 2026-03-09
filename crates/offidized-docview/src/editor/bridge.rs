@@ -1947,7 +1947,7 @@ impl DocEdit {
     }
 
     /// Build undo manager options with a platform-appropriate clock.
-    fn undo_options() -> yrs::undo::Options {
+    fn undo_options() -> yrs::undo::Options<()> {
         use std::collections::HashSet;
 
         // On WASM, SystemClock is not available. Use js_sys::Date::now()
@@ -1968,6 +1968,8 @@ impl DocEdit {
             tracked_origins: HashSet::new(),
             capture_transaction: None,
             timestamp,
+            init_undo_stack: Vec::new(),
+            init_redo_stack: Vec::new(),
         }
     }
 

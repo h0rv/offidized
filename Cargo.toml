@@ -46,10 +46,10 @@ description = "A Rust-native OOXML library for xlsx, docx, and pptx with full ro
 
 [workspace.dependencies]
 # XML
-quick-xml = { version = "0.37", features = ["serialize"] }
+quick-xml = { version = "0.39", features = ["serialize"] }
 
 # ZIP / OPC
-zip = { version = "2.2", default-features = false, features = ["deflate"] }
+zip = { version = "8.2", default-features = false, features = ["deflate"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -75,10 +75,10 @@ tracing = "0.1"
 pretty_assertions = "1"
 tempfile = "3"
 proptest = "1"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 
 # Bindings
-pyo3 = "0.23"
+pyo3 = "0.28"
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 js-sys = "0.3"
@@ -86,7 +86,7 @@ base64 = "0.22"
 console_error_panic_hook = "0.1"
 
 # CRDT / Editing
-yrs = "0.21"
+yrs = "0.25"
 uuid = { version = "1", features = ["v7", "js"] }
 
 # Internal crates

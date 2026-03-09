@@ -29,7 +29,7 @@ use crate::part::Part;
 use crate::relationship::Relationships;
 use crate::uri::PartUri;
 
-use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, Event};
+use quick_xml::events::{BytesDecl, BytesEnd, BytesRef, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 use std::io::{BufRead, Write};
 
@@ -248,9 +248,11 @@ pub fn from_flat_opc<R: BufRead>(reader: R) -> Result<Package> {
                                     xml_data_buf.extend_from_slice(b"/>");
                                 }
                                 Ok(Event::Text(ref inner_e)) => {
-                                    if let Ok(text) = inner_e.unescape() {
-                                        xml_data_buf.extend_from_slice(text.as_bytes());
-                                    }
+                                    xml_data_buf
+                                        .extend_from_slice(decode_text_event(inner_e)?.as_bytes());
+                                }
+                                Ok(Event::GeneralRef(ref inner_e)) => {
+                                    append_general_ref(&mut xml_data_buf, inner_e)?;
                                 }
                                 Ok(Event::CData(ref inner_e)) => {
                                     xml_data_buf.extend_from_slice(b"<![CDATA[");
@@ -290,7 +292,7 @@ pub fn from_flat_opc<R: BufRead>(reader: R) -> Result<Package> {
                 }
             }
             Ok(Event::Text(ref e)) if in_binary_data => {
-                binary_text_buf.push_str(&e.unescape()?);
+                binary_text_buf.push_str(&decode_text_event(e)?);
             }
             Ok(Event::End(ref e)) => {
                 let end_name = e.name();
@@ -405,6 +407,25 @@ fn rels_path_to_source_uri(rels_path: &str) -> Option<String> {
 
 fn local_name(name: &[u8]) -> &[u8] {
     name.rsplit(|byte| *byte == b':').next().unwrap_or(name)
+}
+
+fn decode_text_event(event: &BytesText<'_>) -> Result<String> {
+    event
+        .xml_content()
+        .map(|text| text.into_owned())
+        .map_err(quick_xml::Error::from)
+        .map_err(OpcError::from)
+}
+
+fn append_general_ref(buf: &mut Vec<u8>, event: &BytesRef<'_>) -> Result<()> {
+    let reference = event
+        .decode()
+        .map_err(quick_xml::Error::from)
+        .map_err(OpcError::from)?;
+    buf.push(b'&');
+    buf.extend_from_slice(reference.as_bytes());
+    buf.push(b';');
+    Ok(())
 }
 
 // Simple base64 encoder/decoder (no external dependency)

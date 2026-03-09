@@ -697,7 +697,7 @@ pub fn parse_table_style_id(xml: &str) -> Option<String> {
                     // The GUID is in the text content of this element
                     buffer.clear();
                     if let Ok(Event::Text(t)) = reader.read_event_into(&mut buffer) {
-                        let guid = t.unescape().ok()?.into_owned();
+                        let guid = t.xml_content().ok()?.into_owned();
                         if !guid.is_empty() {
                             return Some(guid);
                         }

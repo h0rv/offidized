@@ -9,7 +9,7 @@ use std::io::Cursor;
 use offidized_opc::relationship::TargetMode;
 use offidized_opc::uri::PartUri;
 use offidized_opc::{Package, Part};
-use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
+use quick_xml::events::{BytesDecl, BytesEnd, BytesRef, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 
 use crate::chart::{
@@ -29,6 +29,29 @@ const RELATIONSHIP_NS: &str = "http://schemas.openxmlformats.org/officeDocument/
 
 fn local_name(name: &[u8]) -> &[u8] {
     name.rsplit(|byte| *byte == b':').next().unwrap_or(name)
+}
+
+fn decode_general_ref(event: &BytesRef<'_>) -> Result<String> {
+    let reference = event.decode().map_err(quick_xml::Error::from)?;
+    let escaped = format!("&{};", reference);
+    quick_xml::escape::unescape(&escaped)
+        .map(|text| text.into_owned())
+        .map_err(quick_xml::Error::from)
+        .map_err(Into::into)
+}
+
+fn assign_string_cache_value(values: &mut Vec<String>, idx: usize, value: String) {
+    if values.len() <= idx {
+        values.resize(idx + 1, String::new());
+    }
+    values[idx] = value;
+}
+
+fn assign_numeric_cache_value(values: &mut Vec<Option<f64>>, idx: usize, value: &str) {
+    if values.len() <= idx {
+        values.resize(idx + 1, None);
+    }
+    values[idx] = value.parse().ok();
 }
 
 #[derive(Debug, Clone)]
@@ -268,7 +291,7 @@ fn parse_drawing_chart_refs(xml: &[u8]) -> Result<Vec<ParsedDrawingChartRef>> {
                 }
             }
             Event::Text(ref text) => {
-                let text_val = text.unescape().unwrap_or_default();
+                let text_val = text.xml_content().unwrap_or_default();
                 if in_col {
                     let val = text_val.parse::<u32>().unwrap_or(0);
                     if in_from {
@@ -381,6 +404,11 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
     let mut ser_name_ref: Option<String> = None;
     let mut ser_cat_formula: Option<String> = None;
     let mut ser_val_formula: Option<String> = None;
+    let mut ser_cat_str_values: Vec<String> = Vec::new();
+    let mut ser_cat_num_values: Vec<Option<f64>> = Vec::new();
+    let mut ser_val_num_values: Vec<Option<f64>> = Vec::new();
+    let mut current_formula = String::new();
+    let mut current_cache_value = String::new();
 
     // Track which sub-element of <c:ser> we are inside
     let mut in_tx = false;
@@ -388,6 +416,11 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
     let mut in_val = false;
     let mut in_str_ref = false;
     let mut in_num_ref = false;
+    let mut in_str_cache = false;
+    let mut in_num_cache = false;
+    let mut in_pt = false;
+    let mut current_pt_idx: usize = 0;
+    let mut in_pt_v = false;
     let mut in_f = false;
     let mut in_tx_v = false;
 
@@ -500,6 +533,9 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                         ser_name_ref = None;
                         ser_cat_formula = None;
                         ser_val_formula = None;
+                        ser_cat_str_values.clear();
+                        ser_cat_num_values.clear();
+                        ser_val_num_values.clear();
                     }
                     b"tx" if in_series => {
                         in_tx = true;
@@ -518,9 +554,31 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                     }
                     b"f" if in_str_ref || in_num_ref => {
                         in_f = true;
+                        current_formula.clear();
+                    }
+                    b"strCache" if in_str_ref => {
+                        in_str_cache = true;
+                    }
+                    b"numCache" if in_num_ref => {
+                        in_num_cache = true;
+                    }
+                    b"pt" if in_str_cache || in_num_cache => {
+                        in_pt = true;
+                        current_pt_idx = 0;
+                        for attribute in event.attributes().flatten() {
+                            if local_name(attribute.key.as_ref()) == b"idx" {
+                                let value =
+                                    String::from_utf8_lossy(attribute.value.as_ref()).into_owned();
+                                current_pt_idx = value.trim().parse().unwrap_or(0);
+                            }
+                        }
                     }
                     b"v" if in_tx && !in_str_ref => {
                         in_tx_v = true;
+                    }
+                    b"v" if in_pt => {
+                        in_pt_v = true;
+                        current_cache_value.clear();
                     }
                     b"scaling" if in_axis => {
                         in_axis_scaling = true;
@@ -668,16 +726,15 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                 }
             }
             Event::Text(ref event) => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 if in_f {
-                    let trimmed = text.trim().to_string();
-                    if in_tx && in_str_ref {
-                        ser_name_ref = Some(trimmed);
-                    } else if in_cat && (in_str_ref || in_num_ref) {
-                        ser_cat_formula = Some(trimmed);
-                    } else if in_val && in_num_ref {
-                        ser_val_formula = Some(trimmed);
-                    }
+                    current_formula.push_str(&text);
+                }
+                if in_pt_v {
+                    current_cache_value.push_str(&text);
                 }
                 if in_tx_v {
                     ser_name = Some(text.to_string());
@@ -686,6 +743,14 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                     axis_title_text_parts.push(text.to_string());
                 } else if in_title_t {
                     title_text_parts.push(text.to_string());
+                }
+            }
+            Event::GeneralRef(ref event) => {
+                if in_f {
+                    current_formula.push_str(&decode_general_ref(event)?);
+                }
+                if in_pt_v {
+                    current_cache_value.push_str(&decode_general_ref(event)?);
                 }
             }
             Event::End(ref event) => {
@@ -750,7 +815,53 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                         in_axis_scaling = false;
                     }
                     b"f" => {
+                        let trimmed = current_formula.trim().to_string();
+                        if !trimmed.is_empty() {
+                            if in_tx && in_str_ref {
+                                ser_name_ref = Some(trimmed);
+                            } else if in_cat && (in_str_ref || in_num_ref) {
+                                ser_cat_formula = Some(trimmed);
+                            } else if in_val && in_num_ref {
+                                ser_val_formula = Some(trimmed);
+                            }
+                        }
                         in_f = false;
+                        current_formula.clear();
+                    }
+                    b"strCache" => {
+                        in_str_cache = false;
+                    }
+                    b"numCache" => {
+                        in_num_cache = false;
+                    }
+                    b"pt" => {
+                        in_pt = false;
+                    }
+                    b"v" if in_pt_v => {
+                        let trimmed = current_cache_value.trim().to_string();
+                        if in_cat {
+                            if in_str_cache {
+                                assign_string_cache_value(
+                                    &mut ser_cat_str_values,
+                                    current_pt_idx,
+                                    trimmed,
+                                );
+                            } else if in_num_cache {
+                                assign_numeric_cache_value(
+                                    &mut ser_cat_num_values,
+                                    current_pt_idx,
+                                    &trimmed,
+                                );
+                            }
+                        } else if in_val && in_num_cache {
+                            assign_numeric_cache_value(
+                                &mut ser_val_num_values,
+                                current_pt_idx,
+                                &trimmed,
+                            );
+                        }
+                        in_pt_v = false;
+                        current_cache_value.clear();
                     }
                     b"strRef" => {
                         in_str_ref = false;
@@ -779,13 +890,31 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                             if let Some(ref name_ref) = ser_name_ref {
                                 series.set_name_ref(name_ref.as_str());
                             }
-                            if let Some(ref cat_formula) = ser_cat_formula {
-                                series.set_categories(ChartDataRef::from_formula(
-                                    cat_formula.as_str(),
-                                ));
+                            if ser_cat_formula.is_some()
+                                || !ser_cat_str_values.is_empty()
+                                || !ser_cat_num_values.is_empty()
+                            {
+                                let mut categories = ser_cat_formula
+                                    .as_deref()
+                                    .map(ChartDataRef::from_formula)
+                                    .unwrap_or_default();
+                                if !ser_cat_str_values.is_empty() {
+                                    categories.set_str_values(ser_cat_str_values.clone());
+                                }
+                                if !ser_cat_num_values.is_empty() {
+                                    categories.set_num_values(ser_cat_num_values.clone());
+                                }
+                                series.set_categories(categories);
                             }
-                            if let Some(ref val_formula) = ser_val_formula {
-                                series.set_values(ChartDataRef::from_formula(val_formula.as_str()));
+                            if ser_val_formula.is_some() || !ser_val_num_values.is_empty() {
+                                let mut values = ser_val_formula
+                                    .as_deref()
+                                    .map(ChartDataRef::from_formula)
+                                    .unwrap_or_default();
+                                if !ser_val_num_values.is_empty() {
+                                    values.set_num_values(ser_val_num_values.clone());
+                                }
+                                series.set_values(values);
                             }
                             series_list.push(series);
                         }
@@ -795,6 +924,10 @@ pub(crate) fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                         in_val = false;
                         in_str_ref = false;
                         in_num_ref = false;
+                        in_str_cache = false;
+                        in_num_cache = false;
+                        in_pt = false;
+                        in_pt_v = false;
                         in_f = false;
                         in_tx_v = false;
                     }
@@ -1487,6 +1620,46 @@ mod tests {
     }
 
     #[test]
+    fn parse_chart_xml_preserves_escaped_sheet_names_in_formulas() {
+        let xml = br#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <c:chart>
+    <c:plotArea>
+      <c:layout/>
+      <c:pieChart>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:order val="0"/>
+          <c:cat>
+            <c:strRef>
+              <c:f>&apos;Risk Analytics&apos;!$A$18:$A$26</c:f>
+            </c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef>
+              <c:f>&apos;Risk Analytics&apos;!$D$18:$D$26</c:f>
+            </c:numRef>
+          </c:val>
+        </c:ser>
+      </c:pieChart>
+    </c:plotArea>
+  </c:chart>
+</c:chartSpace>"#;
+
+        let chart = parse_chart_xml(xml).expect("should parse pie chart");
+        let series = &chart.series()[0];
+
+        assert_eq!(
+            series.categories().unwrap().formula(),
+            Some("'Risk Analytics'!$A$18:$A$26")
+        );
+        assert_eq!(
+            series.values().unwrap().formula(),
+            Some("'Risk Analytics'!$D$18:$D$26")
+        );
+    }
+
+    #[test]
     fn serialize_chart_xml_roundtrip() {
         let mut chart = Chart::new(ChartType::Bar).with_title("Test Chart");
         // Bar charts now get default bar_direction, grouping, and axes
@@ -1595,6 +1768,19 @@ mod tests {
         let parsed = parse_chart_xml(xml_str.as_bytes()).expect("should parse chart XML");
         assert_eq!(parsed.series().len(), 1);
         assert_eq!(parsed.series()[0].name(), Some("Revenue"));
+        assert_eq!(
+            parsed.series()[0].categories().unwrap().str_values(),
+            &[
+                "2024-Q1".to_string(),
+                "2024-Q2".to_string(),
+                "2024-Q3".to_string(),
+                "2024-Q4".to_string(),
+            ]
+        );
+        assert_eq!(
+            parsed.series()[0].values().unwrap().num_values(),
+            &[Some(10.0), Some(20.0), Some(30.0), Some(40.0)]
+        );
     }
 
     #[test]

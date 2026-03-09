@@ -53,7 +53,11 @@ fn str_to_error_style(s: &str) -> PyResult<CoreDataValidationErrorStyle> {
 // =============================================================================
 
 /// Data validation rule applied to one or more worksheet ranges.
-#[pyclass(module = "offidized._native", name = "XlsxDataValidation")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxDataValidation",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxDataValidation {
     inner: CoreDataValidation,

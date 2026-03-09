@@ -375,10 +375,20 @@ fn render_typed_registry_module(
     out.push_str("                });\n");
     out.push_str("            }\n");
     out.push_str("            Event::Text(text) => {\n");
-    out.push_str("                let content = text.unescape()?.into_owned();\n");
+    out.push_str(
+        "                let content = text.xml_content().map_err(quick_xml::Error::from)?.into_owned();\n",
+    );
     out.push_str("                if !content.trim().is_empty() {\n");
     out.push_str("                    children.push(RawXmlNode::Text(content));\n");
     out.push_str("                }\n");
+    out.push_str("            }\n");
+    out.push_str("            Event::GeneralRef(reference) => {\n");
+    out.push_str(
+        "                let reference = reference.decode().map_err(quick_xml::Error::from)?;\n",
+    );
+    out.push_str(
+        "                children.push(RawXmlNode::RawBytes(format!(\"&{};\", reference).into_bytes()));\n",
+    );
     out.push_str("            }\n");
     out.push_str("            Event::CData(text) => {\n");
     out.push_str("                children.push(RawXmlNode::CData(String::from_utf8_lossy(text.as_ref()).into_owned()));\n");

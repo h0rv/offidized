@@ -36,7 +36,7 @@ fn ir_apply(
     output: &str,
     source_override: Option<String>,
     force: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let options = offidized_ir::ApplyOptions {
         source_override: source_override.map(std::path::PathBuf::from),
         force,
@@ -70,7 +70,7 @@ fn ir_apply_to_bytes(
     ir: &str,
     source_override: Option<String>,
     force: bool,
-) -> PyResult<(Vec<u8>, PyObject)> {
+) -> PyResult<(Vec<u8>, Py<PyAny>)> {
     let options = offidized_ir::ApplyOptions {
         source_override: source_override.map(std::path::PathBuf::from),
         force,
@@ -122,7 +122,7 @@ impl PyUnifiedDocument {
     }
 
     /// Return all content nodes as a list of dicts `{id, kind, text}`.
-    fn nodes(&self, py: Python<'_>) -> PyResult<PyObject> {
+    fn nodes(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let nodes = self.inner.nodes();
         let list = PyList::empty(py);
         for node in nodes {
@@ -136,7 +136,7 @@ impl PyUnifiedDocument {
     }
 
     /// Return document capabilities as a dict.
-    fn capabilities(&self, py: Python<'_>) -> PyResult<PyObject> {
+    fn capabilities(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let caps = self.inner.capabilities();
         let dict = PyDict::new(py);
         dict.set_item("text_nodes", caps.text_nodes)?;
@@ -149,14 +149,14 @@ impl PyUnifiedDocument {
     /// Apply a list of edits (each a dict `{id, text, group?}`).
     ///
     /// Returns an edit report dict `{requested, applied, skipped, diagnostics}`.
-    fn apply_edits(&mut self, py: Python<'_>, edits: Vec<PyEditDict>) -> PyResult<PyObject> {
+    fn apply_edits(&mut self, py: Python<'_>, edits: Vec<PyEditDict>) -> PyResult<Py<PyAny>> {
         let edits: Vec<offidized_ir::UnifiedEdit> = edits.into_iter().map(Into::into).collect();
         let report = self.inner.apply_edits(&edits).map_err(ir_error_to_py)?;
         edit_report_to_py(py, &report)
     }
 
     /// Lint edits without applying. Returns a list of diagnostic dicts.
-    fn lint_edits(&self, py: Python<'_>, edits: Vec<PyEditDict>) -> PyResult<PyObject> {
+    fn lint_edits(&self, py: Python<'_>, edits: Vec<PyEditDict>) -> PyResult<Py<PyAny>> {
         let edits: Vec<offidized_ir::UnifiedEdit> = edits.into_iter().map(Into::into).collect();
         let diags = self.inner.lint_edits(&edits);
         diagnostics_to_py(py, &diags)
@@ -170,7 +170,7 @@ impl PyUnifiedDocument {
         output: &str,
         source_override: Option<String>,
         force: bool,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         let options = offidized_ir::ApplyOptions {
             source_override: source_override.map(std::path::PathBuf::from),
             force,
@@ -210,7 +210,7 @@ impl From<PyEditDict> for offidized_ir::UnifiedEdit {
 // Conversion helpers
 // =============================================================================
 
-fn apply_result_to_py(py: Python<'_>, result: &offidized_ir::ApplyResult) -> PyResult<PyObject> {
+fn apply_result_to_py(py: Python<'_>, result: &offidized_ir::ApplyResult) -> PyResult<Py<PyAny>> {
     let dict = PyDict::new(py);
     dict.set_item("cells_updated", result.cells_updated)?;
     dict.set_item("cells_created", result.cells_created)?;
@@ -223,7 +223,7 @@ fn apply_result_to_py(py: Python<'_>, result: &offidized_ir::ApplyResult) -> PyR
 fn edit_report_to_py(
     py: Python<'_>,
     report: &offidized_ir::UnifiedEditReport,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let dict = PyDict::new(py);
     dict.set_item("requested", report.requested)?;
     dict.set_item("applied", report.applied)?;
@@ -235,7 +235,7 @@ fn edit_report_to_py(
 fn diagnostics_to_py(
     py: Python<'_>,
     diags: &[offidized_ir::UnifiedDiagnostic],
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let list = PyList::empty(py);
     for d in diags {
         let dict = PyDict::new(py);

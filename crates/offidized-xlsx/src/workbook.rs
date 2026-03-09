@@ -1730,7 +1730,10 @@ fn parse_workbook_xml(xml: &[u8]) -> Result<ParsedWorkbook> {
                 }
             }
             Event::Text(ref event) if in_defined_name => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 if let Some(state) = current_defined_name.as_mut() {
                     state
                         .reference
@@ -4337,7 +4340,7 @@ fn parse_worksheet_xml(
                         }
                         Event::Text(ref e) => {
                             if let Some(ref elem_name) = current_hf_element {
-                                let text = e.unescape().unwrap_or_default().into_owned();
+                                let text = e.xml_content().unwrap_or_default().into_owned();
                                 match elem_name.as_str() {
                                     "oddHeader" => {
                                         hf.set_odd_header(text);
@@ -4658,7 +4661,10 @@ fn parse_worksheet_xml(
                 }
             }
             Event::Text(ref event) => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 if in_formula {
                     if let Some(state) = current_cell.as_mut() {
                         state
@@ -5294,7 +5300,10 @@ fn parse_drawing_xml(xml: &[u8]) -> Result<Vec<ParsedDrawingImageRef>> {
             }
             Event::Text(ref event) => {
                 if current_anchor.is_some() {
-                    let text = event.unescape()?.into_owned();
+                    let text = event
+                        .xml_content()
+                        .map_err(quick_xml::Error::from)?
+                        .into_owned();
                     if in_col {
                         let val = text.trim().parse::<u32>().ok();
                         if in_from {
@@ -5612,7 +5621,7 @@ fn parse_table_xml(xml: &[u8]) -> Result<Option<WorksheetTable>> {
                 }
             }
             Event::Text(ref event) if in_totals_row_formula => {
-                if let Ok(text) = event.unescape() {
+                if let Ok(text) = event.xml_content() {
                     totals_row_formula_text.push_str(text.as_ref());
                 }
             }
@@ -5923,7 +5932,10 @@ fn parse_shared_strings_xml(xml: &[u8]) -> Result<Vec<SharedStringEntry>> {
                 }
             }
             Event::Text(ref event) if in_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 if in_run {
                     current_run_text.push_str(text.as_str());
                 } else if let Some(current) = current_plain_text.as_mut() {
@@ -9196,7 +9208,10 @@ fn parse_comments_xml(xml: &[u8]) -> Result<Vec<Comment>> {
                 current_author_text.clear();
             }
             Event::Text(ref event) if in_author => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_author_text.push_str(text.as_str());
             }
             Event::End(ref event) if local_name(event.name().as_ref()) == b"author" => {
@@ -9223,7 +9238,10 @@ fn parse_comments_xml(xml: &[u8]) -> Result<Vec<Comment>> {
                 in_comment_text = true;
             }
             Event::Text(ref event) if in_comment_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_comment_text.push_str(text.as_str());
             }
             Event::End(ref event) if local_name(event.name().as_ref()) == b"t" => {

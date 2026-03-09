@@ -3203,12 +3203,18 @@ fn parse_paragraphs(
             }
             Event::Text(ref event) => {
                 if in_instr_text && current_run_text.is_some() {
-                    let text = event.unescape()?.into_owned();
+                    let text = event
+                        .xml_content()
+                        .map_err(quick_xml::Error::from)?
+                        .into_owned();
                     if let Some(instr) = current_run_properties.field_instruction.as_mut() {
                         instr.push_str(text.trim());
                     }
                 } else if in_text && current_run_text.is_some() {
-                    let text = event.unescape()?.into_owned();
+                    let text = event
+                        .xml_content()
+                        .map_err(quick_xml::Error::from)?
+                        .into_owned();
                     if current_run_properties.in_field && current_run_properties.field_separated {
                         // Text after "separate" fldChar is the field result
                         if let Some(result) = current_run_properties.field_result.as_mut() {
@@ -3218,14 +3224,20 @@ fn parse_paragraphs(
                         run_text.push_str(text.as_str());
                     }
                 } else if in_position_h_offset && current_run_text.is_some() {
-                    let text = event.unescape()?.into_owned();
+                    let text = event
+                        .xml_content()
+                        .map_err(quick_xml::Error::from)?
+                        .into_owned();
                     maybe_apply_run_floating_image_position_offset(
                         &mut current_run_properties,
                         text.as_str(),
                         true,
                     );
                 } else if in_position_v_offset && current_run_text.is_some() {
-                    let text = event.unescape()?.into_owned();
+                    let text = event
+                        .xml_content()
+                        .map_err(quick_xml::Error::from)?
+                        .into_owned();
                     maybe_apply_run_floating_image_position_offset(
                         &mut current_run_properties,
                         text.as_str(),
@@ -3787,7 +3799,10 @@ fn parse_tables(xml: &[u8]) -> Result<Vec<Table>> {
             }
             Event::Text(ref event) => {
                 if in_text && current_cell_text.is_some() {
-                    let text = event.unescape()?.into_owned();
+                    let text = event
+                        .xml_content()
+                        .map_err(quick_xml::Error::from)?
+                        .into_owned();
                     if let Some(cell_text) = current_cell_text.as_mut() {
                         cell_text.push_str(text.as_str());
                     }
@@ -6430,7 +6445,7 @@ fn parse_footnotes_xml(xml: &[u8]) -> Result<Vec<Footnote>> {
             }
             Event::Text(ref event) => {
                 if in_text {
-                    if let Ok(text) = event.unescape() {
+                    if let Ok(text) = event.xml_content() {
                         current_text.push_str(text.as_ref());
                     }
                 }
@@ -6503,7 +6518,7 @@ fn parse_endnotes_xml(xml: &[u8]) -> Result<Vec<Endnote>> {
             }
             Event::Text(ref event) => {
                 if in_text {
-                    if let Ok(text) = event.unescape() {
+                    if let Ok(text) = event.xml_content() {
                         current_text.push_str(text.as_ref());
                     }
                 }
@@ -6686,7 +6701,7 @@ fn parse_comments_xml(xml: &[u8]) -> Result<Vec<Comment>> {
             }
             Event::Text(ref event) => {
                 if in_text {
-                    if let Ok(text) = event.unescape() {
+                    if let Ok(text) = event.xml_content() {
                         current_text.push_str(text.as_ref());
                     }
                 }
@@ -6754,7 +6769,7 @@ fn parse_core_properties_xml(xml: &[u8]) -> Result<DocumentProperties> {
             }
             Event::Text(ref event) => {
                 if current_element.is_some() {
-                    if let Ok(text) = event.unescape() {
+                    if let Ok(text) = event.xml_content() {
                         current_text.push_str(text.as_ref());
                     }
                 }
@@ -6901,7 +6916,7 @@ fn parse_content_controls(xml: &[u8]) -> Result<Vec<ContentControl>> {
             }
             Event::Text(ref event) => {
                 if in_text && sdt_depth == 1 && in_sdt_content {
-                    if let Ok(text) = event.unescape() {
+                    if let Ok(text) = event.xml_content() {
                         current_para_text.push_str(text.as_ref());
                     }
                 }

@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 /// Comments are attached to a cell reference and carry an author string, plain
 /// text, and an optional visibility flag. Construct via the normal
 /// ``__init__`` and add to a sheet with :py:meth:`Worksheet.add_comment`.
-#[pyclass(module = "offidized._native", name = "XlsxComment")]
+#[pyclass(module = "offidized._native", name = "XlsxComment", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxComment {
     cell_ref: String,

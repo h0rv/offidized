@@ -46,7 +46,7 @@ fn str_to_sparkline_type(s: &str) -> PyResult<CoreSparklineType> {
 /// is the cell that displays the sparkline (e.g. ``"Sheet1!A1"``) and
 /// ``data_range`` is the range of values it visualises (e.g.
 /// ``"Sheet1!B1:B10"``).
-#[pyclass(module = "offidized._native", name = "XlsxSparkline")]
+#[pyclass(module = "offidized._native", name = "XlsxSparkline", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxSparkline {
     inner: CoreSparkline,
@@ -112,7 +112,11 @@ impl XlsxSparkline {
 /// A sparkline group collects one or more :py:class:`XlsxSparkline` entries
 /// that share a common type, colour scheme, and display options. Add groups
 /// to a worksheet via :py:meth:`Worksheet.add_sparkline_group`.
-#[pyclass(module = "offidized._native", name = "XlsxSparklineGroup")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxSparklineGroup",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxSparklineGroup {
     inner: CoreSparklineGroup,

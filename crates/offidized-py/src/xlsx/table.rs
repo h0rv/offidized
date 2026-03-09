@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 /// Maps to the ``<tableColumn>`` element in OOXML. Each column has a header
 /// name and a 1-based integer ID. Optional totals-row label and formula
 /// control what appears in the totals row when it is enabled.
-#[pyclass(module = "offidized._native", name = "XlsxTableColumn")]
+#[pyclass(module = "offidized._native", name = "XlsxTableColumn", from_py_object)]
 #[derive(Clone)]
 pub struct XlsxTableColumn {
     inner: CoreTableColumn,
@@ -114,7 +114,11 @@ impl XlsxTableColumn {
 /// range with optional header and totals rows, column definitions, and a
 /// table style. Construct with :py:meth:`XlsxWorksheetTable.__init__` or
 /// retrieve existing tables via :py:meth:`Worksheet.worksheet_tables`.
-#[pyclass(module = "offidized._native", name = "XlsxWorksheetTable")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxWorksheetTable",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxWorksheetTable {
     inner: CoreWorksheetTable,

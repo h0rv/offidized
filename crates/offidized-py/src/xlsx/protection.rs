@@ -28,7 +28,11 @@ use std::sync::{Arc, Mutex};
 /// to be active; all other flags default to ``False``.
 ///
 /// Apply to a worksheet with :py:meth:`Worksheet.set_protection_detail`.
-#[pyclass(module = "offidized._native", name = "XlsxSheetProtection")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxSheetProtection",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxSheetProtection {
     inner: CoreSheetProtection,
@@ -274,7 +278,11 @@ impl XlsxSheetProtection {
 ///
 /// Controls whether the workbook structure (sheet tabs) or window positions
 /// are locked. Apply with :py:meth:`Workbook.set_workbook_protection`.
-#[pyclass(module = "offidized._native", name = "XlsxWorkbookProtection")]
+#[pyclass(
+    module = "offidized._native",
+    name = "XlsxWorkbookProtection",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct XlsxWorkbookProtection {
     inner: CoreWorkbookProtection,

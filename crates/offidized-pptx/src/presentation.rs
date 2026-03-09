@@ -3214,7 +3214,10 @@ fn parse_slide_shapes(xml: &[u8]) -> Result<Vec<Shape>> {
                 }
             }
             Event::Text(ref event) if in_shape && in_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_text.push_str(text.as_str());
             }
             Event::CData(ref event) if in_shape && in_text => {
@@ -3864,7 +3867,10 @@ fn parse_slide_tables(xml: &[u8]) -> Result<Vec<Table>> {
                 }
             }
             Event::Text(ref event) if in_table && in_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_text.push_str(text.as_str());
             }
             Event::CData(ref event) if in_table && in_text => {
@@ -4517,7 +4523,10 @@ fn parse_notes_slide_text(xml: &[u8]) -> Result<String> {
                 }
             }
             Event::Text(ref event) if in_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_text.push_str(text.as_str());
             }
             Event::CData(ref event) if in_text => {
@@ -4634,7 +4643,10 @@ fn parse_comments_xml(xml: &[u8]) -> Result<Vec<ParsedSlideComment>> {
                 current_text.clear();
             }
             Event::Text(ref event) if in_comment && in_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_text.push_str(text.as_str());
             }
             Event::CData(ref event) if in_comment && in_text => {
@@ -5075,7 +5087,10 @@ fn parse_slide_grouped_shapes(xml: &[u8]) -> Result<Vec<ShapeGroup>> {
                 }
             }
             Event::Text(ref event) if in_child_sp && child_in_text => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 child_current_text.push_str(text.as_str());
             }
             Event::End(ref event) => {
@@ -6412,7 +6427,10 @@ fn parse_chart_xml(xml: &[u8]) -> Result<Chart> {
                 }
             }
             Event::Text(ref event) if text_target != ChartTextTarget::None => {
-                let text = event.unescape()?.into_owned();
+                let text = event
+                    .xml_content()
+                    .map_err(quick_xml::Error::from)?
+                    .into_owned();
                 current_text.push_str(text.as_str());
             }
             Event::CData(ref event) if text_target != ChartTextTarget::None => {

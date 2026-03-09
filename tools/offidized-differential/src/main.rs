@@ -895,7 +895,7 @@ fn canonicalize_xml_payload(bytes: &[u8]) -> Option<Vec<u8>> {
                     .ok()?;
             }
             Ok(Event::Text(event)) => {
-                let text = event.unescape().ok()?.into_owned();
+                let text = event.xml_content().ok()?.into_owned();
                 if !text.trim().is_empty() {
                     writer
                         .write_event(Event::Text(BytesText::new(text.as_str())))

@@ -356,7 +356,7 @@ impl PresentationProperties {
                 }
                 Event::Text(ref event) => {
                     if current_element.is_some() {
-                        if let Ok(text) = event.unescape() {
+                        if let Ok(text) = event.xml_content() {
                             current_text.push_str(text.as_ref());
                         }
                     }
@@ -435,7 +435,7 @@ impl PresentationProperties {
                 }
                 Event::Text(ref event) => {
                     if current_element.is_some() {
-                        if let Ok(text) = event.unescape() {
+                        if let Ok(text) = event.xml_content() {
                             current_text.push_str(text.as_ref());
                         }
                     }
