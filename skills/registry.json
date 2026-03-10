@@ -8,6 +8,14 @@
       "manifest": "catalog/offidized-mcp/manifest.json",
       "targets": ["codex", "claude-code"],
       "tags": ["office", "mcp", "xlsx", "docx", "pptx"]
+    },
+    {
+      "id": "offidized-cli",
+      "name": "Offidized CLI",
+      "version": "0.1.0",
+      "manifest": "catalog/offidized-cli/manifest.json",
+      "targets": ["codex", "claude-code"],
+      "tags": ["office", "cli", "python", "xlsx", "docx", "pptx"]
     }
   ]
 }

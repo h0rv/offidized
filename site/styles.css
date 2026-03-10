@@ -109,6 +109,107 @@ code {
   overflow: hidden;
 }
 
+.skill-install {
+  margin: 18px 0 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.skill-install-head {
+  margin-bottom: 8px;
+}
+
+.skill-note {
+  max-width: 62ch;
+}
+
+.skill-install-head.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.copy-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink);
+  font: inherit;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.74rem;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+
+.copy-button.copied {
+  border-color: rgba(20, 99, 255, 0.24);
+  background: var(--accent-soft);
+}
+
+.install-copy-button {
+  flex: 0 0 auto;
+}
+
+.skill-note.compact {
+  margin-top: 0;
+  margin-bottom: 10px;
+  max-width: none;
+  font-size: 0.88rem;
+}
+
+.install-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.install-tab {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
+  font: inherit;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.74rem;
+  padding: 8px 11px;
+  cursor: pointer;
+}
+
+.install-tab.active {
+  border-color: rgba(20, 99, 255, 0.2);
+  background: var(--paper-strong);
+  color: var(--ink);
+}
+
+.install-caption {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.copy-block {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  border-radius: 16px;
+  background: #101418;
+  color: #eef3f8;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.copy-block.compact {
+  padding: 10px 12px;
+  font-size: 0.86rem;
+}
+
 .file-tabs {
   display: flex;
   gap: 8px;
@@ -300,6 +401,11 @@ code {
 
   .panel-head,
   .panel-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .skill-install-head.compact {
     align-items: flex-start;
     flex-direction: column;
   }

@@ -1,0 +1,16 @@
+{
+  "id": "offidized-cli",
+  "name": "Offidized CLI",
+  "version": "0.1.0",
+  "description": "Operate the ofx CLI for Office file inspection, editing, IR workflows, and Python handoff.",
+  "targets": {
+    "codex": {
+      "path": "payload",
+      "entry": "SKILL.md"
+    },
+    "claude-code": {
+      "path": "payload",
+      "entry": "offidized-cli.md"
+    }
+  }
+}

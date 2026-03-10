@@ -9,10 +9,9 @@ impl CanvasRenderer {
     /// Chart color palette
     const CHART_COLORS: [&'static str; 5] = ["#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", "#5B9BD5"];
     const CHART_PADDING: f64 = 10.0;
-    const CHART_AXIS_LEFT_GUTTER: f64 = 36.0;
-    const CHART_AXIS_RIGHT_GUTTER: f64 = 6.0;
-    const CHART_AXIS_BOTTOM_GUTTER: f64 = 24.0;
-    const CHART_MIN_LABEL_SPACING: f64 = 56.0;
+    const CHART_TITLE_FONT: &'static str = "bold 12px Calibri, Arial, sans-serif";
+    const CHART_AXIS_LABEL_FONT: &'static str = "9px Calibri, Arial, sans-serif";
+    const CHART_AXIS_TITLE_FONT: &'static str = "10px Calibri, Arial, sans-serif";
 
     /// Render charts embedded in the sheet
     pub(super) fn render_charts(
@@ -110,17 +109,21 @@ impl CanvasRenderer {
         self.ctx.set_line_width(1.0);
         self.ctx.stroke_rect(x, y, w, h);
 
-        // Reserve space for title and legend
-        let title_height = if chart.title.is_some() { 24.0 } else { 8.0 };
-        let legend_height = if chart.legend.is_some() { 20.0 } else { 8.0 };
+        // Reserve space for title, legend, and axes using measured label sizes.
+        let title_height = chart
+            .title
+            .as_deref()
+            .map(|title| self.measure_chart_text_height(title, Self::CHART_TITLE_FONT) + 10.0)
+            .unwrap_or(8.0);
+        let legend_height = if chart.legend.is_some() {
+            self.measure_chart_text_height("Legend", Self::CHART_AXIS_LABEL_FONT) + 10.0
+        } else {
+            8.0
+        };
         let padding = Self::CHART_PADDING;
         let (axis_left_gutter, axis_right_gutter, axis_bottom_gutter) = match chart.chart_type {
             ChartType::Pie | ChartType::Doughnut => (0.0, 0.0, 0.0),
-            _ => (
-                Self::CHART_AXIS_LEFT_GUTTER,
-                Self::CHART_AXIS_RIGHT_GUTTER,
-                Self::CHART_AXIS_BOTTOM_GUTTER,
-            ),
+            _ => self.chart_axis_gutters(chart, w - padding * 2.0),
         };
 
         // Calculate plot area
@@ -131,10 +134,12 @@ impl CanvasRenderer {
 
         // Draw title if present
         if let Some(ref title) = chart.title {
-            self.ctx.set_font("bold 12px Calibri, Arial, sans-serif");
+            self.ctx.set_font(Self::CHART_TITLE_FONT);
             self.ctx.set_fill_style_str("#000000");
             self.ctx.set_text_align("center");
-            let _ = self.ctx.fill_text(title, x + w / 2.0, y + 16.0);
+            self.ctx.set_text_baseline("top");
+            let _ = self.ctx.fill_text(title, x + w / 2.0, y + 4.0);
+            self.ctx.set_text_baseline("alphabetic");
             self.ctx.set_text_align("left");
         }
 
@@ -351,15 +356,6 @@ impl CanvasRenderer {
         self.ctx.stroke();
     }
 
-    fn category_label_stride(num_labels: usize, plot_width: f64) -> usize {
-        if num_labels <= 1 {
-            return 1;
-        }
-
-        let max_labels = ((plot_width / Self::CHART_MIN_LABEL_SPACING).floor() as usize).max(2);
-        num_labels.div_ceil(max_labels).max(1)
-    }
-
     fn compact_category_label(label: &str) -> String {
         let bytes = label.as_bytes();
         if bytes.len() == 10
@@ -374,6 +370,173 @@ impl CanvasRenderer {
         }
 
         label.to_string()
+    }
+
+    fn measure_chart_text_width(&self, text: &str, font: &str) -> f64 {
+        self.ctx.set_font(font);
+        self.ctx
+            .measure_text(text)
+            .map(|m| m.width())
+            .unwrap_or(0.0)
+    }
+
+    fn measure_chart_text_height(&self, text: &str, font: &str) -> f64 {
+        self.ctx.set_font(font);
+        self.ctx
+            .measure_text(text)
+            .map(|metrics| {
+                let actual =
+                    metrics.actual_bounding_box_ascent() + metrics.actual_bounding_box_descent();
+                if actual > 0.0 {
+                    actual
+                } else {
+                    let font_box =
+                        metrics.font_bounding_box_ascent() + metrics.font_bounding_box_descent();
+                    if font_box > 0.0 {
+                        font_box
+                    } else {
+                        Self::fallback_font_size(font)
+                    }
+                }
+            })
+            .unwrap_or_else(|_| Self::fallback_font_size(font))
+    }
+
+    fn fallback_font_size(font: &str) -> f64 {
+        font.split_whitespace()
+            .find_map(|part| part.strip_suffix("px"))
+            .and_then(|size| size.parse::<f64>().ok())
+            .unwrap_or(10.0)
+    }
+
+    fn chart_axis_title<'a>(&self, chart: &'a Chart, value_axis: bool) -> Option<&'a str> {
+        chart.axes.iter().find_map(|axis| {
+            let is_value = matches!(axis.position.as_deref(), Some("l") | Some("r"));
+            if is_value == value_axis {
+                axis.title.as_deref()
+            } else {
+                None
+            }
+        })
+    }
+
+    fn chart_category_labels(&self, chart: &Chart) -> Vec<String> {
+        chart
+            .series
+            .first()
+            .and_then(|series| series.categories.as_ref())
+            .map(|categories| {
+                categories
+                    .str_values
+                    .iter()
+                    .map(|label| Self::compact_category_label(label))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn chart_value_labels(&self, chart: &Chart, num_gridlines: usize) -> Vec<String> {
+        let value_axis = chart.axes.iter().find(|a| a.axis_type == "val");
+        let mut all_values: Vec<f64> = Vec::new();
+        for series in &chart.series {
+            if let Some(ref values) = series.values {
+                for v in values.num_values.iter().flatten() {
+                    all_values.push(*v);
+                }
+            }
+        }
+
+        if all_values.is_empty() {
+            return Vec::new();
+        }
+
+        let min_val = value_axis
+            .and_then(|axis| axis.min)
+            .unwrap_or_else(|| all_values.iter().copied().fold(0.0_f64, f64::min));
+        let max_val = value_axis
+            .and_then(|axis| axis.max)
+            .unwrap_or_else(|| all_values.iter().copied().fold(0.0_f64, f64::max));
+
+        (0..=num_gridlines)
+            .map(|i| {
+                let val = max_val - (max_val - min_val) * i as f64 / num_gridlines as f64;
+                Self::format_chart_value_label(val)
+            })
+            .collect()
+    }
+
+    fn category_label_stride(&self, labels: &[String], plot_width: f64) -> usize {
+        if labels.len() <= 1 {
+            return 1;
+        }
+
+        let max_label_width = labels
+            .iter()
+            .map(|label| self.measure_chart_text_width(label, Self::CHART_AXIS_LABEL_FONT))
+            .fold(0.0_f64, f64::max);
+        let label_height =
+            self.measure_chart_text_height("0123456789", Self::CHART_AXIS_LABEL_FONT);
+        let spacing = (max_label_width + label_height * 0.75).max(label_height * 2.5);
+        let max_labels = (plot_width / spacing).floor().max(2.0) as usize;
+        labels.len().div_ceil(max_labels).max(1)
+    }
+
+    fn chart_axis_gutters(&self, chart: &Chart, usable_width: f64) -> (f64, f64, f64) {
+        let y_axis_labels = self.chart_value_labels(chart, 5);
+        let widest_y_label = y_axis_labels
+            .iter()
+            .map(|label| self.measure_chart_text_width(label, Self::CHART_AXIS_LABEL_FONT))
+            .fold(0.0_f64, f64::max);
+        let y_label_height =
+            self.measure_chart_text_height("0123456789", Self::CHART_AXIS_LABEL_FONT);
+        let y_title_height = self
+            .chart_axis_title(chart, true)
+            .map(|title| self.measure_chart_text_height(title, Self::CHART_AXIS_TITLE_FONT))
+            .unwrap_or(0.0);
+
+        let category_labels = self.chart_category_labels(chart);
+        let widest_x_label = category_labels
+            .iter()
+            .map(|label| self.measure_chart_text_width(label, Self::CHART_AXIS_LABEL_FONT))
+            .fold(0.0_f64, f64::max);
+        let x_label_height =
+            self.measure_chart_text_height("0123456789", Self::CHART_AXIS_LABEL_FONT);
+        let x_title_height = self
+            .chart_axis_title(chart, false)
+            .map(|title| self.measure_chart_text_height(title, Self::CHART_AXIS_TITLE_FONT))
+            .unwrap_or(0.0);
+
+        let left = widest_y_label
+            + y_label_height * 0.75
+            + if y_title_height > 0.0 {
+                y_title_height + y_label_height * 0.5
+            } else {
+                0.0
+            };
+        let right = (widest_x_label * 0.5).min(usable_width.max(0.0) * 0.2);
+        let bottom = if category_labels.is_empty() {
+            0.0
+        } else {
+            x_label_height
+                + x_label_height * 0.75
+                + if x_title_height > 0.0 {
+                    x_title_height + x_label_height * 0.5
+                } else {
+                    0.0
+                }
+        };
+
+        (left, right, bottom)
+    }
+
+    fn format_chart_value_label(val: f64) -> String {
+        if val.abs() >= 1000.0 {
+            format!("{:.0}", val)
+        } else if val.abs() >= 1.0 {
+            format!("{:.1}", val)
+        } else {
+            format!("{:.2}", val)
+        }
     }
 
     /// Render a pie chart (or doughnut)
@@ -577,13 +740,13 @@ impl CanvasRenderer {
             .and_then(|s| s.values.as_ref())
             .map(|v| v.num_values.len())
             .unwrap_or(5);
-        let category_count = chart
-            .series
-            .first()
-            .and_then(|s| s.categories.as_ref())
-            .map(|c| c.str_values.len())
-            .unwrap_or(num_points);
-        let label_stride = Self::category_label_stride(category_count.max(num_points), w);
+        let category_labels = self.chart_category_labels(chart);
+        let category_count = category_labels.len().max(num_points);
+        let label_stride = if category_labels.is_empty() {
+            1
+        } else {
+            self.category_label_stride(&category_labels, w)
+        };
 
         if num_points > 1 {
             let divisor = match chart.chart_type {
@@ -624,8 +787,9 @@ impl CanvasRenderer {
         self.ctx.stroke();
 
         // Draw axis labels
-        self.ctx.set_font("9px Calibri, Arial, sans-serif");
+        self.ctx.set_font(Self::CHART_AXIS_LABEL_FONT);
         self.ctx.set_fill_style_str("#606060");
+        self.ctx.set_text_baseline("middle");
 
         // Y-axis labels (values)
         if let Some(axis) = value_axis {
@@ -649,13 +813,7 @@ impl CanvasRenderer {
             self.ctx.set_text_align("right");
             for i in 0..=num_gridlines {
                 let val = max_val - (max_val - min_val) * i as f64 / num_gridlines as f64;
-                let label = if val.abs() >= 1000.0 {
-                    format!("{:.0}", val)
-                } else if val.abs() >= 1.0 {
-                    format!("{:.1}", val)
-                } else {
-                    format!("{:.2}", val)
-                };
+                let label = Self::format_chart_value_label(val);
                 let label_y = y + (h * i as f64 / num_gridlines as f64) + 3.0;
                 let _ = self.ctx.fill_text(&label, x - 4.0, label_y);
             }
@@ -663,30 +821,27 @@ impl CanvasRenderer {
 
         // X-axis labels (categories)
         self.ctx.set_text_align("center");
-        if let Some(series) = chart.series.first() {
-            if let Some(ref categories) = series.categories {
-                let last_idx = categories.str_values.len().saturating_sub(1);
-                for (i, cat) in categories.str_values.iter().enumerate() {
-                    if num_points > 0 && (i % label_stride == 0 || i == last_idx) {
-                        let label_x = match chart.chart_type {
-                            ChartType::Line | ChartType::Area => {
-                                if num_points > 1 {
-                                    x + (w * i as f64 / (num_points - 1) as f64)
-                                } else {
-                                    x + w / 2.0
-                                }
-                            }
-                            _ => x + (w * (i as f64 + 0.5) / num_points as f64),
-                        };
-                        let label = Self::compact_category_label(cat);
-                        let _ = self.ctx.fill_text(&label, label_x, y + h + 14.0);
+        self.ctx.set_text_baseline("top");
+        let last_idx = category_count.saturating_sub(1);
+        for (i, label) in category_labels.iter().enumerate() {
+            if num_points > 0 && (i % label_stride == 0 || i == last_idx) {
+                let label_x = match chart.chart_type {
+                    ChartType::Line | ChartType::Area => {
+                        if num_points > 1 {
+                            x + (w * i as f64 / (num_points - 1) as f64)
+                        } else {
+                            x + w / 2.0
+                        }
                     }
-                }
+                    _ => x + (w * (i as f64 + 0.5) / num_points as f64),
+                };
+                let _ = self.ctx.fill_text(label, label_x, y + h + 6.0);
             }
         }
+        self.ctx.set_text_baseline("alphabetic");
 
         // Draw axis titles if present
-        self.ctx.set_font("10px Calibri, Arial, sans-serif");
+        self.ctx.set_font(Self::CHART_AXIS_TITLE_FONT);
         self.ctx.set_fill_style_str("#404040");
 
         for axis in &chart.axes {
@@ -694,22 +849,38 @@ impl CanvasRenderer {
                 match axis.position.as_deref() {
                     Some("l") | Some("r") => {
                         // Y-axis title (rotated) - simplified: just draw at left
+                        let axis_title_height =
+                            self.measure_chart_text_height(title, Self::CHART_AXIS_TITLE_FONT);
+                        let axis_label_height = self
+                            .measure_chart_text_height("0123456789", Self::CHART_AXIS_LABEL_FONT);
                         self.ctx.save();
-                        self.ctx.translate(x - 30.0, y + h / 2.0).ok();
+                        self.ctx
+                            .translate(
+                                x - (axis_title_height + axis_label_height * 0.5),
+                                y + h / 2.0,
+                            )
+                            .ok();
                         self.ctx.rotate(-std::f64::consts::FRAC_PI_2).ok();
                         self.ctx.set_text_align("center");
+                        self.ctx.set_text_baseline("middle");
                         let _ = self.ctx.fill_text(title, 0.0, 0.0);
                         self.ctx.restore();
                     }
                     _ => {
                         // X-axis title
+                        let axis_label_height = self
+                            .measure_chart_text_height("0123456789", Self::CHART_AXIS_LABEL_FONT);
                         self.ctx.set_text_align("center");
-                        let _ = self.ctx.fill_text(title, x + w / 2.0, y + h + 24.0);
+                        self.ctx.set_text_baseline("top");
+                        let _ = self
+                            .ctx
+                            .fill_text(title, x + w / 2.0, y + h + axis_label_height);
                     }
                 }
             }
         }
 
+        self.ctx.set_text_baseline("alphabetic");
         self.ctx.set_text_align("left");
     }
 

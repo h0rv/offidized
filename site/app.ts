@@ -40,6 +40,35 @@ type DemoController = {
   newBlank?: () => Uint8Array | void;
 };
 
+const SKILL_ID = "offidized-cli";
+const SKILL_INSTALL_SCRIPT_URL =
+  "https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_skill.sh";
+const OFX_INSTALL_SCRIPT_URL =
+  "https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_ofx.sh";
+const FULL_INSTALL_SCRIPT_URL =
+  "https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_offidized.sh";
+
+const installSnippets: Record<string, { caption: string; command: string }> = {
+  "setup-codex": {
+    caption:
+      "Install the shared skill, the ofx CLI, and the Python package for Codex.",
+    command: `curl -fsSL ${FULL_INSTALL_SCRIPT_URL} | bash -s -- --target codex --skill ${SKILL_ID}`,
+  },
+  "setup-claude": {
+    caption: "Use the same one-command setup flow for Claude Code.",
+    command: `curl -fsSL ${FULL_INSTALL_SCRIPT_URL} | bash -s -- --target claude-code --skill ${SKILL_ID}`,
+  },
+  "install-cli": {
+    caption: "Install only the ofx binary from GitHub Releases.",
+    command: `curl -fsSL ${OFX_INSTALL_SCRIPT_URL} | bash -s --`,
+  },
+  "setup-prompt": {
+    caption:
+      "Paste this into the agent when you want it to fetch the official setup path for the current runtime.",
+    command: `Fetch the official offidized install docs or install scripts and set everything up for this runtime. Use ${FULL_INSTALL_SCRIPT_URL} for full setup, ${OFX_INSTALL_SCRIPT_URL} for CLI-only install, and ${SKILL_INSTALL_SCRIPT_URL} for skill-only install.`,
+  },
+};
+
 const assetUrl = (path: string) =>
   new URL(path, window.location.href).toString();
 
@@ -149,6 +178,60 @@ function mimeTypeFor(kind: DemoKind): string {
     return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   }
   return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+}
+
+function initInstallSnippets(): void {
+  const tabs = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("[data-install-tab]"),
+  );
+  const caption = document.querySelector<HTMLElement>("[data-install-caption]");
+  const command = document.querySelector<HTMLElement>("[data-install-command]");
+  const copyButton = document.querySelector<HTMLButtonElement>(
+    "[data-install-copy]",
+  );
+  if (!tabs.length || !caption || !command || !copyButton) return;
+
+  let activeKey = tabs[0]?.dataset.installTab ?? "setup-codex";
+
+  const render = (): void => {
+    const current = installSnippets[activeKey];
+    if (!current) return;
+    caption.textContent = current.caption;
+    command.textContent = current.command;
+    for (const tab of tabs) {
+      tab.classList.toggle("active", tab.dataset.installTab === activeKey);
+    }
+  };
+
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      activeKey = tab.dataset.installTab ?? activeKey;
+      render();
+    });
+  }
+
+  copyButton.addEventListener("click", async () => {
+    const text = installSnippets[activeKey]?.command;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      const previous = copyButton.textContent;
+      copyButton.textContent = "Copied";
+      copyButton.classList.add("copied");
+      window.setTimeout(() => {
+        copyButton.textContent = previous;
+        copyButton.classList.remove("copied");
+      }, 1200);
+    } catch {
+      const previous = copyButton.textContent;
+      copyButton.textContent = "Copy failed";
+      window.setTimeout(() => {
+        copyButton.textContent = previous;
+      }, 1200);
+    }
+  });
+
+  render();
 }
 
 class Panel {
@@ -438,4 +521,5 @@ for (const tab of tabButtons) {
   });
 }
 
+initInstallSnippets();
 await setActiveKind("xlsx");

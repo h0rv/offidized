@@ -134,6 +134,38 @@
           </div>
         </section>
       </main>
+
+      <section class="skill-install compact" aria-labelledby="agent-skills-title">
+        <div class="skill-install-head compact">
+          <div>
+            <p class="panel-kicker">Agent setup</p>
+            <h2 id="agent-skills-title">Install in one step</h2>
+          </div>
+          <button class="copy-button install-copy-button" data-install-copy>
+            Copy
+          </button>
+        </div>
+        <p class="panel-note skill-note compact">
+          Pick a target, copy the command, and pin a release later with
+          <code>--ref vX.Y.Z</code> or <code>--version vX.Y.Z</code>.
+        </p>
+        <div class="install-tabs" role="tablist" aria-label="Install target">
+          <button class="install-tab active" data-install-tab="setup-codex">
+            Codex
+          </button>
+          <button class="install-tab" data-install-tab="setup-claude">
+            Claude
+          </button>
+          <button class="install-tab" data-install-tab="install-cli">
+            CLI
+          </button>
+          <button class="install-tab" data-install-tab="setup-prompt">
+            Agent
+          </button>
+        </div>
+        <p class="install-caption" data-install-caption></p>
+        <pre class="copy-block compact"><code data-install-command></code></pre>
+      </section>
     </div>
 
     <script type="module" src="./app.js"></script>

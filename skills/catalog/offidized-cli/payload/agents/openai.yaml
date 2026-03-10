@@ -1,0 +1,4 @@
+interface:
+  display_name: "Offidized CLI"
+  short_description: "Use the ofx CLI for Office file workflows"
+  default_prompt: "Use $offidized-cli to inspect or edit Office files with the ofx CLI, and switch to Python only for scripting-heavy work."

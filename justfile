@@ -2,6 +2,7 @@ set shell := ["bash", "-uc"]
 
 mod build   '.just/build.just'
 mod dev     '.just/dev.just'
+mod release '.just/release.just'
 mod skills  '.just/skills.just'
 mod stress  '.just/stress.just'
 

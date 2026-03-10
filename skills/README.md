@@ -24,3 +24,12 @@ This directory is the source of truth for distributable agent skills.
 - `just skills-validate`
 - `just skills-install-codex <skill>`
 - `just skills-install-claude <skill>`
+
+## Direct Install
+
+- Skill only for Codex: `curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_skill.sh | bash -s -- --skill offidized-cli --target codex`
+- Skill only for Claude Code: `curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_skill.sh | bash -s -- --skill offidized-cli --target claude-code`
+- CLI only: `curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_ofx.sh | bash -s --`
+- Full setup for Codex: `curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_offidized.sh | bash -s -- --target codex --skill offidized-cli`
+- Full setup for Claude Code: `curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_offidized.sh | bash -s -- --target claude-code --skill offidized-cli`
+- Append `--ref vX.Y.Z` for skill/setup scripts or `--version vX.Y.Z` for the CLI script to pin a release.

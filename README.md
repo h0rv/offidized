@@ -133,6 +133,19 @@ Reference regression:
 ./scripts/differential_corpus.sh --rust-only   # Rust-only roundtrip
 ```
 
+## Install
+
+```bash
+# CLI only
+curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_ofx.sh | bash -s --
+
+# Full setup for Codex
+curl -fsSL https://raw.githubusercontent.com/h0rv/offidized/main/scripts/install_offidized.sh | bash -s -- --target codex --skill offidized-cli
+
+# Python library
+pip install offidized
+```
+
 ## Acknowledgments
 
 offidized's API design and correctness draws heavily from studying the C# OOXML ecosystem:
