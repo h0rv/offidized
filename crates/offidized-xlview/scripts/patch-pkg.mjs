@@ -15,11 +15,15 @@ const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 pkg.main = "xl-view.js";
 pkg.types = "xl-view.d.ts";
 
-// Add exports map for both wrapper and raw WASM bindings
+// Add exports map for the viewer wrapper, editor wrapper, and raw WASM bindings
 pkg.exports = {
   ".": {
     import: "./xl-view.js",
     types: "./xl-view.d.ts",
+  },
+  "./edit": {
+    import: "./xl-edit.js",
+    types: "./xl-edit.d.ts",
   },
   "./core": {
     import: "./offidized_xlview.js",
@@ -27,8 +31,8 @@ pkg.exports = {
   },
 };
 
-// Ensure xl-view files are in the files array
-const extraFiles = ["xl-view.js", "xl-view.d.ts"];
+// Ensure wrapper files are in the files array
+const extraFiles = ["xl-view.js", "xl-view.d.ts", "xl-edit.js", "xl-edit.d.ts"];
 for (const f of extraFiles) {
   if (!pkg.files.includes(f)) {
     pkg.files.push(f);

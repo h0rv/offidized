@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { copyFileSync } from 'fs';
+import { copyFileSync, existsSync } from 'fs';
 
 const watch = process.argv.includes('--watch');
 
@@ -29,7 +29,15 @@ const entryPoints = [
 ];
 
 async function build() {
-  for (const entry of entryPoints) {
+  const resolvedEntryPoints = entryPoints.filter((entry) => {
+    if (existsSync(entry.in)) {
+      return true;
+    }
+    console.warn(`Skipping missing entry point: ${entry.in}`);
+    return false;
+  });
+
+  for (const entry of resolvedEntryPoints) {
     const opts = {
       ...shared,
       entryPoints: [entry.in],

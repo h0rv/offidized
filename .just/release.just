@@ -11,31 +11,47 @@ requirements: _check-tools versions _check-openxml-data
     @echo "Release prerequisites look sane."
 
 # Validate registry credentials for crates.io, PyPI, and npm.
-auth:
+auth: auth-crates auth-python auth-npm
+    @echo "Release auth looks configured."
+
+# Validate crates.io credentials.
+auth-crates:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    missing=()
-
-    if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]] && [[ ! -f "${HOME}/.cargo/credentials.toml" ]] && [[ ! -f "${HOME}/.cargo/credentials" ]]; then
-        missing+=("crates.io: set CARGO_REGISTRY_TOKEN or run cargo login")
+    if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]] || [[ -f "${HOME}/.cargo/credentials.toml" ]] || [[ -f "${HOME}/.cargo/credentials" ]]; then
+        echo "crates.io auth looks configured."
+        exit 0
     fi
 
-    if [[ -z "${MATURIN_PYPI_TOKEN:-}" ]] && [[ -z "${TWINE_PASSWORD:-}" ]]; then
-        missing+=("PyPI: set MATURIN_PYPI_TOKEN (preferred) or TWINE_PASSWORD/TWINE_USERNAME")
+    echo "Missing crates.io auth: set CARGO_REGISTRY_TOKEN or run cargo login" >&2
+    exit 1
+
+# Validate PyPI credentials.
+auth-python:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -n "${MATURIN_PYPI_TOKEN:-}" ]] || { [[ -n "${MATURIN_USERNAME:-}" ]] && [[ -n "${MATURIN_PASSWORD:-}" ]]; }; then
+        echo "PyPI auth looks configured."
+        exit 0
     fi
 
-    if [[ -z "${NPM_TOKEN:-}" ]] && [[ -z "${NODE_AUTH_TOKEN:-}" ]] && [[ ! -f "${HOME}/.npmrc" ]] && [[ ! -f "{{root}}/.npmrc" ]]; then
-        missing+=("npm: set NPM_TOKEN/NODE_AUTH_TOKEN or configure ~/.npmrc")
+    echo "Missing PyPI auth: set MATURIN_PYPI_TOKEN or both MATURIN_USERNAME and MATURIN_PASSWORD" >&2
+    exit 1
+
+# Validate npm credentials.
+auth-npm:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -n "${NPM_TOKEN:-}" ]] || [[ -n "${NODE_AUTH_TOKEN:-}" ]] || [[ -f "${HOME}/.npmrc" ]] || [[ -f "{{root}}/.npmrc" ]]; then
+        echo "npm auth looks configured."
+        exit 0
     fi
 
-    if (( ${#missing[@]} > 0 )); then
-        printf 'Missing release auth:\n' >&2
-        printf '  - %s\n' "${missing[@]}" >&2
-        exit 1
-    fi
-
-    echo "Release auth looks configured."
+    echo "Missing npm auth: set NPM_TOKEN/NODE_AUTH_TOKEN or configure ~/.npmrc" >&2
+    exit 1
 
 # Validate the full release flow without publishing.
 dry-run: requirements crates-dry-run python-dry-run npm-dry-run
@@ -66,20 +82,47 @@ crates:
         fi
     done
 
-# Validate the crates.io publish flow with cargo dry-runs.
+# Validate the crates.io publish flow before publication.
+# Later crates cannot use `cargo publish --dry-run` until earlier internal
+# versions exist on crates.io, so they fall back to `cargo package --list`.
 crates-dry-run:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
 
-    IFS=' ' read -r -a crates <<< "{{cargo_publish_order}}"
-    total="${#crates[@]}"
+    publishable_now=(
+        offidized-opc
+        offidized-codegen
+        offidized-formula
+    )
+    package_only=(
+        offidized-schema
+        offidized-docx
+        offidized-pptx
+        offidized-xlsx
+        offidized
+        offidized-docview
+        offidized-pptview
+        offidized-xlview
+        offidized-ffi
+        offidized-ir
+        offidized-cli
+        offidized-wasm
+    )
 
-    for index in "${!crates[@]}"; do
-        crate="${crates[$index]}"
-        human_index=$((index + 1))
-        echo "[${human_index}/${total}] cargo publish --dry-run -p ${crate}"
+    total=$(( ${#publishable_now[@]} + ${#package_only[@]} ))
+    step=0
+
+    for crate in "${publishable_now[@]}"; do
+        step=$((step + 1))
+        echo "[${step}/${total}] cargo publish --dry-run -p ${crate}"
         cargo publish --dry-run --locked -p "${crate}"
+    done
+
+    for crate in "${package_only[@]}"; do
+        step=$((step + 1))
+        echo "[${step}/${total}] cargo package --list -p ${crate}"
+        cargo package --allow-dirty --list --locked -p "${crate}" >/dev/null
     done
 
 # Publish the Python bindings package to PyPI.
@@ -88,65 +131,43 @@ python:
 
 # Validate the Python release flow without uploading.
 python-dry-run:
-    cd {{root}}/crates/offidized-py && uvx maturin publish --dry-run
+    cd {{root}}/crates/offidized-py && uvx maturin build --release
 
-# Publish all generated wasm/npm packages.
+# Publish the npm-ready wasm packages.
 npm:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
 
-    echo "[1/4] npm publish offidized-wasm"
+    echo "[1/2] npm publish offidized-wasm"
     cd crates/offidized-wasm
     wasm-pack build --target web --release --out-dir pkg
     npm publish ./pkg --access public
     cd "{{root}}"
 
-    echo "[2/4] npm publish offidized-docview (generated pkg)"
-    cd crates/offidized-docview
-    wasm-pack build --target web --release --out-dir pkg
-    npm publish ./pkg --access public
-    cd "{{root}}"
-
-    echo "[3/4] npm publish offidized-pptview (generated pkg)"
-    cd crates/offidized-pptview
-    wasm-pack build --target web --release --out-dir pkg
-    npm publish ./pkg --access public
-    cd "{{root}}"
-
-    echo "[4/4] npm publish offidized-xlview"
+    echo "[2/2] npm publish offidized-xlview"
     cd crates/offidized-xlview
+    npm ci
     wasm-pack build --target web --release --out-dir pkg
     node scripts/patch-pkg.mjs
     node build.mjs
     npm publish ./pkg --access public
 
-# Validate all generated wasm/npm packages with npm publish dry-runs.
+# Validate the npm-ready wasm packages with npm publish dry-runs.
 npm-dry-run:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
 
-    echo "[1/4] npm publish --dry-run offidized-wasm"
+    echo "[1/2] npm publish --dry-run offidized-wasm"
     cd crates/offidized-wasm
     wasm-pack build --target web --release --out-dir pkg
     npm publish --dry-run ./pkg --access public
     cd "{{root}}"
 
-    echo "[2/4] npm publish --dry-run offidized-docview (generated pkg)"
-    cd crates/offidized-docview
-    wasm-pack build --target web --release --out-dir pkg
-    npm publish --dry-run ./pkg --access public
-    cd "{{root}}"
-
-    echo "[3/4] npm publish --dry-run offidized-pptview (generated pkg)"
-    cd crates/offidized-pptview
-    wasm-pack build --target web --release --out-dir pkg
-    npm publish --dry-run ./pkg --access public
-    cd "{{root}}"
-
-    echo "[4/4] npm publish --dry-run offidized-xlview"
+    echo "[2/2] npm publish --dry-run offidized-xlview"
     cd crates/offidized-xlview
+    npm ci
     wasm-pack build --target web --release --out-dir pkg
     node scripts/patch-pkg.mjs
     node build.mjs
@@ -188,9 +209,10 @@ versions:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    node -e '
+    cargo metadata --format-version 1 --no-deps | node -e '
         const fs = require("fs");
         const path = require("path");
+        const metadata = JSON.parse(fs.readFileSync(0, "utf8"));
         const root = process.argv[1];
 
         const read = (relativePath) =>
@@ -210,6 +232,7 @@ versions:
         }
 
         const workspaceVersion = parseTomlVersion(workspaceBlock[0], "Cargo.toml");
+        const workspaceRoot = path.resolve(root);
         const versions = [
             ["crates/offidized-py/pyproject.toml", parseTomlVersion(read("crates/offidized-py/pyproject.toml"), "crates/offidized-py/pyproject.toml")],
             ["crates/offidized-docview/package.json", JSON.parse(read("crates/offidized-docview/package.json")).version],
@@ -218,6 +241,40 @@ versions:
         ];
 
         const mismatches = versions.filter(([, version]) => version !== workspaceVersion);
+
+        const workspaceMemberIds = new Set(metadata.workspace_members);
+        const internalPrefix = "^" + workspaceVersion;
+
+        for (const pkg of metadata.packages) {
+            if (!workspaceMemberIds.has(pkg.id)) {
+                continue;
+            }
+            if (Array.isArray(pkg.publish) && pkg.publish.length === 0) {
+                continue;
+            }
+            if (pkg.version !== workspaceVersion) {
+                mismatches.push([path.relative(workspaceRoot, pkg.manifest_path), pkg.version]);
+            }
+
+            for (const dep of pkg.dependencies) {
+                if (!dep.path) {
+                    continue;
+                }
+                if (!path.resolve(dep.path).startsWith(workspaceRoot + path.sep)) {
+                    continue;
+                }
+                if (!dep.name.startsWith("offidized-")) {
+                    continue;
+                }
+                if (dep.req !== internalPrefix) {
+                    mismatches.push([
+                        path.relative(workspaceRoot, pkg.manifest_path) + ` -> ${dep.name}`,
+                        dep.req,
+                    ]);
+                }
+            }
+        }
+
         if (mismatches.length > 0) {
             console.error(`Workspace version is ${workspaceVersion}, but these package manifests differ:`);
             for (const [relativePath, version] of mismatches) {

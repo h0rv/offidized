@@ -19,7 +19,7 @@ jobs:
       OFFIDIZED_OPENXML_DATA_ROOT: ${{ github.workspace }}/references/Open-XML-SDK/data
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Fetch Open-XML-SDK schema data (sparse)
         run: |
