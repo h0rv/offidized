@@ -1,0 +1,15 @@
+set shell := ["bash", "-uc"]
+
+default:
+    @just --list
+
+fmt:
+    uvx ruff format .
+
+lint:
+    uvx ruff check .
+
+typecheck:
+    uvx basedpyright --project .
+
+all: fmt lint typecheck

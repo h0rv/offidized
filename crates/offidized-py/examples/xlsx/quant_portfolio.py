@@ -624,7 +624,9 @@ date_ref = XlsxChartDataRef.from_formula(f"'Daily Returns'!$A$4:$A${last_data_ro
 date_ref.str_values = [excel_serial_to_iso(serial) for serial in dates]
 s1.set_categories(date_ref)
 
-portfolio_ref = XlsxChartDataRef.from_formula(f"'Daily Returns'!$G$4:$G${last_data_row}")
+portfolio_ref = XlsxChartDataRef.from_formula(
+    f"'Daily Returns'!$G$4:$G${last_data_row}"
+)
 portfolio_ref.num_values = cumul_port_values
 s1.set_values(portfolio_ref)
 chart.add_series(s1)
@@ -764,12 +766,11 @@ for i, (sector, data) in enumerate(
 sector_end = 18 + len(sector_data)
 sector_labels = [
     sector
-    for sector, _data in sorted(
-        sector_data.items(), key=lambda kv: -kv[1]["exposure"]
-    )
+    for sector, _data in sorted(sector_data.items(), key=lambda kv: -kv[1]["exposure"])
 ]
 sector_weight_values = [
-    round(sector_data[sector]["exposure"] / total_mkt_val, 4) for sector in sector_labels
+    round(sector_data[sector]["exposure"] / total_mkt_val, 4)
+    for sector in sector_labels
 ]
 
 # Sector pie chart
@@ -777,11 +778,15 @@ sector_chart = XlsxChart("pie")
 sector_chart.title = "Sector Allocation"
 sector_chart.set_anchor(5, 15, 12, 32)
 sec_series = XlsxChartSeries(0, 0)
-sector_cat_ref = XlsxChartDataRef.from_formula(f"'Risk Analytics'!$A$18:$A${sector_end - 1}")
+sector_cat_ref = XlsxChartDataRef.from_formula(
+    f"'Risk Analytics'!$A$18:$A${sector_end - 1}"
+)
 sector_cat_ref.str_values = sector_labels
 sec_series.set_categories(sector_cat_ref)
 
-sector_val_ref = XlsxChartDataRef.from_formula(f"'Risk Analytics'!$D$18:$D${sector_end - 1}")
+sector_val_ref = XlsxChartDataRef.from_formula(
+    f"'Risk Analytics'!$D$18:$D${sector_end - 1}"
+)
 sector_val_ref.num_values = sector_weight_values
 sec_series.set_values(sector_val_ref)
 sector_chart.add_series(sec_series)

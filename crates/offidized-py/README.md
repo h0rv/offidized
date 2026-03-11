@@ -10,6 +10,61 @@ pip install offidized
 
 Supports Python 3.9+ on Linux, macOS, and Windows.
 
+### Optional: PydanticAI Toolsets
+
+Install the optional PydanticAI integration with:
+
+```bash
+pip install "offidized[pydantic-ai]"
+```
+
+The current `pydantic-ai` release line requires Python 3.10+.
+
+This adds the `offidized.pydantic_ai` helpers for format-first agent toolsets:
+
+- `xlsx_toolset()`
+- `docx_toolset()`
+- `pptx_toolset()`
+- `compose_toolsets()`
+- `all_toolsets()`
+
+Each format toolset is designed to include both native document operations and
+format-scoped IR-backed editing helpers, so users can compose by document type
+instead of managing a separate IR surface.
+
+Minimal example:
+
+```python
+from pydantic_ai import Agent
+
+from offidized.pydantic_ai import (
+    all_toolsets,
+    compose_toolsets,
+    docx_toolset,
+    xlsx_toolset,
+)
+
+agent = Agent(
+    "openai:gpt-5",
+    toolsets=[
+        xlsx_toolset(),
+        docx_toolset(),
+    ],
+)
+
+agent_with_everything = Agent(
+    "openai:gpt-5",
+    toolsets=[all_toolsets()],
+)
+
+agent_with_explicit_composition = Agent(
+    "openai:gpt-5",
+    toolsets=[compose_toolsets(xlsx_toolset(), docx_toolset())],
+)
+```
+
+See `examples/offidized_pydantic_ai_toolsets.py` for a small runnable example.
+
 ## Python Binding Coverage
 
 The Rust crates have 90%+ feature parity (see root README for details). Below tracks what's exposed to Python.
